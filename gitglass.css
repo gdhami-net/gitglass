@@ -1,0 +1,80 @@
+/* gitglass — default dark theme. Override the --gg-* variables to restyle. */
+.gg {
+  --gg-bg: #0b1120;
+  --gg-side: #0d1526;
+  --gg-text: #e2e8f0;
+  --gg-code: #cbd5e1;
+  --gg-muted: #94a3b8;
+  --gg-dim: #64748b;
+  --gg-faint: #475569;
+  --gg-gutter: #334155;
+  --gg-hover: rgba(148, 163, 184, 0.06);
+  --gg-active: rgba(56, 189, 248, 0.1);
+  --gg-accent: #38bdf8;
+  --gg-kw: #38bdf8;
+  --gg-str: #22c55e;
+  --gg-cm: #64748b;
+  --gg-num: #fbbf24;
+  --gg-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  display: flex;
+  height: 460px;
+  background: var(--gg-bg);
+  text-align: left;
+}
+.gg * { box-sizing: border-box; }
+.gg-side {
+  width: 230px; flex-shrink: 0; background: var(--gg-side);
+  overflow-y: auto; padding: 10px 0;
+  font-family: var(--gg-mono); font-size: 12.5px;
+}
+.gg-row {
+  display: flex; gap: 7px; padding: 3px 12px;
+  cursor: pointer; color: var(--gg-muted); white-space: nowrap;
+}
+.gg-row:hover { color: var(--gg-text); background: var(--gg-hover); }
+.gg-row.gg-active { color: var(--gg-text); background: var(--gg-active); }
+.gg-chev { width: 11px; flex-shrink: 0; color: var(--gg-faint); }
+.gg-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.gg-tabbar { display: flex; background: var(--gg-side); flex-shrink: 0; }
+.gg-tabs { display: flex; overflow-x: auto; flex: 1; }
+.gg-max {
+  background: none; border: none; padding: 6px 14px;
+  color: var(--gg-dim); cursor: pointer;
+  display: inline-flex; align-items: center; flex-shrink: 0;
+}
+.gg-max:hover { color: var(--gg-text); }
+.gg.gg-fullscreen { position: fixed; inset: 0; z-index: 9999; height: auto; }
+.gg-tab {
+  font-family: var(--gg-mono); font-size: 12px;
+  padding: 8px 12px 8px 14px; color: var(--gg-dim); cursor: pointer;
+  display: flex; gap: 9px; align-items: center; white-space: nowrap;
+}
+.gg-tab.gg-active { background: var(--gg-bg); color: var(--gg-text); }
+.gg-x { color: var(--gg-faint); }
+.gg-x:hover { color: #ef4444; }
+.gg-body { flex: 1; overflow: auto; display: flex; align-items: flex-start; }
+.gg-gutter {
+  text-align: right; padding: 14px 12px 14px 18px;
+  font-family: var(--gg-mono); font-size: 13px; line-height: 1.65;
+  color: var(--gg-gutter); user-select: none; white-space: pre; flex-shrink: 0;
+}
+.gg-code {
+  padding: 14px 24px 14px 0; margin: 0; flex: 1;
+  font-family: var(--gg-mono); font-size: 13px; line-height: 1.65;
+  white-space: pre; color: var(--gg-code); background: none;
+}
+.gg-status {
+  font-family: var(--gg-mono); font-size: 11px;
+  color: var(--gg-faint); padding: 7px 16px; background: var(--gg-side);
+  display: flex; justify-content: space-between; gap: 18px; flex-shrink: 0;
+}
+.gg-empty {
+  color: var(--gg-faint); font-family: var(--gg-mono); font-size: 12.5px;
+  padding: 20px 16px; white-space: normal;
+}
+.gg-empty a { color: var(--gg-accent); }
+.gg-kw { color: var(--gg-kw); }
+.gg-str { color: var(--gg-str); }
+.gg-cm { color: var(--gg-cm); }
+.gg-num { color: var(--gg-num); }
