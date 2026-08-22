@@ -1,80 +1,106 @@
-/* gitglass — default dark theme. Override the --gg-* variables to restyle. */
+/* gitglass v1.0 — core styles. Default theme = VS Dark. Restyle via --gg-* variables on .gg,
+   or load gitglass.themes.css and set data-gitglass-theme="github-light" (etc.) on the host. */
 .gg {
-  --gg-bg: #0b1120;
-  --gg-side: #0d1526;
-  --gg-text: #e2e8f0;
-  --gg-code: #cbd5e1;
-  --gg-muted: #94a3b8;
-  --gg-dim: #64748b;
-  --gg-faint: #475569;
-  --gg-gutter: #334155;
-  --gg-hover: rgba(148, 163, 184, 0.06);
-  --gg-active: rgba(56, 189, 248, 0.1);
-  --gg-accent: #38bdf8;
-  --gg-kw: #38bdf8;
-  --gg-str: #22c55e;
-  --gg-cm: #64748b;
-  --gg-num: #fbbf24;
-  --gg-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --gg-bg: #1e1e1e;
+  --gg-side: #252526;
+  --gg-text: #d4d4d4;
+  --gg-code: #d4d4d4;
+  --gg-muted: #a9a9a9;
+  --gg-dim: #8b8b8b;
+  --gg-faint: #6a6a6a;
+  --gg-gutter: #858585;
+  --gg-hover: rgba(255, 255, 255, 0.06);
+  --gg-active: rgba(55, 148, 255, 0.18);
+  --gg-accent: #569cd6;
+  --gg-kw: #569cd6;
+  --gg-str: #ce9178;
+  --gg-cm: #6a9955;
+  --gg-num: #b5cea8;
+  --gg-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --gg-font-size: 13px;
+  --gg-height: 460px;
 
+  position: relative;
   display: flex;
-  height: 460px;
+  height: var(--gg-height);
   background: var(--gg-bg);
+  color: var(--gg-text);
   text-align: left;
+  font-family: var(--gg-mono);
+  font-size: var(--gg-font-size);
+  line-height: 1.5;
 }
 .gg * { box-sizing: border-box; }
+.gg:focus { outline: none; }
+.gg:focus-visible { outline: 2px solid var(--gg-accent); outline-offset: 2px; }
+
+/* sidebar */
 .gg-side {
   width: 230px; flex-shrink: 0; background: var(--gg-side);
-  overflow-y: auto; padding: 10px 0;
-  font-family: var(--gg-mono); font-size: 12.5px;
+  overflow-y: auto; padding: 10px 0; font-size: 12.5px;
 }
-.gg-row {
-  display: flex; gap: 7px; padding: 3px 12px;
-  cursor: pointer; color: var(--gg-muted); white-space: nowrap;
-}
+.gg-row { display: flex; gap: 7px; padding: 3px 12px; cursor: pointer; color: var(--gg-muted); white-space: nowrap; }
 .gg-row:hover { color: var(--gg-text); background: var(--gg-hover); }
 .gg-row.gg-active { color: var(--gg-text); background: var(--gg-active); }
 .gg-chev { width: 11px; flex-shrink: 0; color: var(--gg-faint); }
+
+/* main column */
 .gg-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.gg-tabbar { display: flex; background: var(--gg-side); flex-shrink: 0; }
-.gg-tabs { display: flex; overflow-x: auto; flex: 1; }
-.gg-max {
-  background: none; border: none; padding: 6px 14px;
-  color: var(--gg-dim); cursor: pointer;
-  display: inline-flex; align-items: center; flex-shrink: 0;
+.gg-tabbar { display: flex; align-items: stretch; background: var(--gg-side); flex-shrink: 0; position: relative; }
+.gg-tabs {
+  display: flex; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
 }
-.gg-max:hover { color: var(--gg-text); }
-.gg.gg-fullscreen { position: fixed; inset: 0; z-index: 9999; height: auto; }
+.gg-tabs::-webkit-scrollbar { display: none; }
 .gg-tab {
-  font-family: var(--gg-mono); font-size: 12px;
-  padding: 8px 12px 8px 14px; color: var(--gg-dim); cursor: pointer;
-  display: flex; gap: 9px; align-items: center; white-space: nowrap;
+  font-size: 12px; padding: 8px 10px 8px 14px; color: var(--gg-dim); cursor: pointer;
+  display: flex; gap: 9px; align-items: center; white-space: nowrap; flex-shrink: 0;
+  min-width: 90px; max-width: 200px;
 }
+.gg-tabname { overflow: hidden; text-overflow: ellipsis; }
 .gg-tab.gg-active { background: var(--gg-bg); color: var(--gg-text); }
-.gg-x { color: var(--gg-faint); }
-.gg-x:hover { color: #ef4444; }
+.gg-x { color: var(--gg-faint); line-height: 1; }
+.gg-x:hover { color: #e5534b; }
+.gg-max, .gg-files {
+  background: none; border: none; padding: 6px 14px; color: var(--gg-dim); cursor: pointer;
+  display: inline-flex; align-items: center; flex-shrink: 0; font: inherit;
+}
+.gg-max:hover, .gg-files:hover { color: var(--gg-text); }
+.gg-files { display: none; }
+.gg.gg-fullscreen { position: fixed; inset: 0; z-index: 9999; height: auto; }
+
+/* editor */
 .gg-body { flex: 1; overflow: auto; display: flex; align-items: flex-start; }
 .gg-gutter {
-  text-align: right; padding: 14px 12px 14px 18px;
-  font-family: var(--gg-mono); font-size: 13px; line-height: 1.65;
+  text-align: right; padding: 14px 12px 14px 18px; line-height: 1.65;
   color: var(--gg-gutter); user-select: none; white-space: pre; flex-shrink: 0;
 }
 .gg-code {
-  padding: 14px 24px 14px 0; margin: 0; flex: 1;
-  font-family: var(--gg-mono); font-size: 13px; line-height: 1.65;
-  white-space: pre; color: var(--gg-code); background: none;
+  padding: 14px 24px 14px 0; margin: 0; flex: 1; line-height: 1.65;
+  white-space: pre; color: var(--gg-code); background: none; font: inherit; tab-size: 4;
 }
 .gg-status {
-  font-family: var(--gg-mono); font-size: 11px;
-  color: var(--gg-faint); padding: 7px 16px; background: var(--gg-side);
-  display: flex; justify-content: space-between; gap: 18px; flex-shrink: 0;
+  font-size: 11px; color: var(--gg-faint); padding: 7px 16px; background: var(--gg-side);
+  display: flex; justify-content: space-between; gap: 18px; flex-shrink: 0; overflow: hidden;
 }
-.gg-empty {
-  color: var(--gg-faint); font-family: var(--gg-mono); font-size: 12.5px;
-  padding: 20px 16px; white-space: normal;
-}
+.gg-status span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gg-empty { color: var(--gg-faint); font-size: 12.5px; padding: 20px 16px; white-space: normal; }
 .gg-empty a { color: var(--gg-accent); }
+
+/* tokens */
 .gg-kw { color: var(--gg-kw); }
 .gg-str { color: var(--gg-str); }
-.gg-cm { color: var(--gg-cm); }
+.gg-cm { color: var(--gg-cm); font-style: italic; }
 .gg-num { color: var(--gg-num); }
+
+/* narrow (< 720px container): sidebar becomes an overlay behind the files button */
+.gg.gg-narrow .gg-files { display: inline-flex; }
+.gg.gg-narrow .gg-side {
+  position: absolute; top: 0; bottom: 0; left: 0; width: min(260px, 80%);
+  z-index: 2; transform: translateX(-100%); transition: transform .18s ease;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+.gg.gg-narrow.gg-side-open .gg-side { transform: none; }
+.gg.gg-narrow .gg-tab { min-width: 70px; max-width: 150px; }

@@ -1,0 +1,60 @@
+/* gitglass v1.0 — named theme presets. Load after gitglass.css and set
+   data-gitglass-theme="..." on the host (or pass { theme: '...' } to mount). */
+
+.gg[data-theme="vs-dark"] { /* same as the built-in default */ }
+
+.gg[data-theme="vs-light"] {
+  --gg-bg: #ffffff; --gg-side: #f3f3f3; --gg-text: #000000; --gg-code: #000000;
+  --gg-muted: #3b3b3b; --gg-dim: #616161; --gg-faint: #9a9a9a; --gg-gutter: #237893;
+  --gg-hover: rgba(0, 0, 0, 0.05); --gg-active: rgba(0, 90, 200, 0.12); --gg-accent: #0000ff;
+  --gg-kw: #0000ff; --gg-str: #a31515; --gg-cm: #008000; --gg-num: #098658;
+}
+
+.gg[data-theme="github-dark"] {
+  --gg-bg: #0d1117; --gg-side: #010409; --gg-text: #e6edf3; --gg-code: #e6edf3;
+  --gg-muted: #8b949e; --gg-dim: #8b949e; --gg-faint: #6e7681; --gg-gutter: #6e7681;
+  --gg-hover: rgba(177, 186, 196, 0.08); --gg-active: rgba(56, 139, 253, 0.15); --gg-accent: #58a6ff;
+  --gg-kw: #ff7b72; --gg-str: #a5d6ff; --gg-cm: #8b949e; --gg-num: #79c0ff;
+}
+
+.gg[data-theme="github-light"] {
+  --gg-bg: #ffffff; --gg-side: #f6f8fa; --gg-text: #1f2328; --gg-code: #1f2328;
+  --gg-muted: #57606a; --gg-dim: #6e7781; --gg-faint: #8c959f; --gg-gutter: #8c959f;
+  --gg-hover: rgba(208, 215, 222, 0.32); --gg-active: rgba(9, 105, 218, 0.12); --gg-accent: #0969da;
+  --gg-kw: #cf222e; --gg-str: #0a3069; --gg-cm: #6e7781; --gg-num: #0550ae;
+}
+
+.gg[data-theme="monokai"] {
+  --gg-bg: #272822; --gg-side: #1e1f1c; --gg-text: #f8f8f2; --gg-code: #f8f8f2;
+  --gg-muted: #a6a69c; --gg-dim: #90908a; --gg-faint: #75715e; --gg-gutter: #90908a;
+  --gg-hover: rgba(255, 255, 255, 0.06); --gg-active: rgba(166, 226, 46, 0.14); --gg-accent: #a6e22e;
+  --gg-kw: #f92672; --gg-str: #e6db74; --gg-cm: #75715e; --gg-num: #ae81ff;
+}
+
+.gg[data-theme="dracula"] {
+  --gg-bg: #282a36; --gg-side: #21222c; --gg-text: #f8f8f2; --gg-code: #f8f8f2;
+  --gg-muted: #bcc2cd; --gg-dim: #6272a4; --gg-faint: #6272a4; --gg-gutter: #6272a4;
+  --gg-hover: rgba(255, 255, 255, 0.06); --gg-active: rgba(189, 147, 249, 0.18); --gg-accent: #bd93f9;
+  --gg-kw: #ff79c6; --gg-str: #f1fa8c; --gg-cm: #6272a4; --gg-num: #bd93f9;
+}
+
+.gg[data-theme="solarized-dark"] {
+  --gg-bg: #002b36; --gg-side: #073642; --gg-text: #93a1a1; --gg-code: #839496;
+  --gg-muted: #93a1a1; --gg-dim: #657b83; --gg-faint: #586e75; --gg-gutter: #586e75;
+  --gg-hover: rgba(147, 161, 161, 0.08); --gg-active: rgba(38, 139, 210, 0.2); --gg-accent: #268bd2;
+  --gg-kw: #859900; --gg-str: #2aa198; --gg-cm: #586e75; --gg-num: #d33682;
+}
+
+.gg[data-theme="solarized-light"] {
+  --gg-bg: #fdf6e3; --gg-side: #eee8d5; --gg-text: #586e75; --gg-code: #657b83;
+  --gg-muted: #657b83; --gg-dim: #93a1a1; --gg-faint: #93a1a1; --gg-gutter: #93a1a1;
+  --gg-hover: rgba(88, 110, 117, 0.08); --gg-active: rgba(38, 139, 210, 0.15); --gg-accent: #268bd2;
+  --gg-kw: #859900; --gg-str: #2aa198; --gg-cm: #93a1a1; --gg-num: #d33682;
+}
+
+.gg[data-theme="nord"] {
+  --gg-bg: #2e3440; --gg-side: #3b4252; --gg-text: #eceff4; --gg-code: #d8dee9;
+  --gg-muted: #d8dee9; --gg-dim: #81a1c1; --gg-faint: #4c566a; --gg-gutter: #4c566a;
+  --gg-hover: rgba(236, 239, 244, 0.06); --gg-active: rgba(136, 192, 208, 0.18); --gg-accent: #88c0d0;
+  --gg-kw: #81a1c1; --gg-str: #a3be8c; --gg-cm: #616e88; --gg-num: #b48ead;
+}

@@ -4,19 +4,53 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>gitglass demo</title>
-<link rel="stylesheet" href="../gitglass.css">
+<link rel="stylesheet" href="../dist/gitglass.min.css">
+<link rel="stylesheet" href="../dist/gitglass.themes.min.css">
 <style>
   body { margin: 0; background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; padding: 40px; }
-  h1 { font-size: 22px; } p { color: #94a3b8; max-width: 640px; }
+  h1 { font-size: 22px; margin: 0 0 6px 0; } p { color: #94a3b8; max-width: 680px; line-height: 1.5; }
   .wrap { max-width: 1000px; margin: 0 auto; }
+  label { font-size: 13px; color: #94a3b8; margin-right: 8px; }
+  select { font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+  .row { display: flex; gap: 16px; align-items: center; margin: 18px 0; flex-wrap: wrap; }
+  .narrow { max-width: 420px; margin-top: 40px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>gitglass</h1>
-  <p>One div with a <code>data-gitglass</code> attribute. This one browses gitglass's own repo — live from the GitHub API.</p>
-  <div data-gitglass="gdhami-net/gitglass"></div>
+  <p>One element with a <code>data-gitglass</code> attribute. Pick a theme — every color is a CSS variable, the presets just set them.</p>
+  <div class="row">
+    <label for="theme">theme</label>
+    <select id="theme">
+      <option value="vs-dark">vs-dark (default)</option><option value="vs-light">vs-light</option>
+      <option value="github-dark">github-dark</option><option value="github-light">github-light</option>
+      <option value="monokai">monokai</option><option value="dracula">dracula</option>
+      <option value="solarized-dark">solarized-dark</option><option value="solarized-light">solarized-light</option>
+      <option value="nord">nord</option>
+    </select>
+    <label for="repo">repo</label>
+    <input id="repo" value="gdhami-net/gitglass" style="font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; width: 260px;">
+    <button id="go" style="font: inherit; padding: 5px 12px; cursor: pointer;">load</button>
+  </div>
+  <div id="host"></div>
+
+  <p class="narrow">The same viewer in a 420px column — below 720px the file tree folds behind the ☰ button.</p>
+  <div class="narrow" data-gitglass="gdhami-net/gitglass" data-gitglass-theme="github-light"></div>
 </div>
-<script src="../gitglass.js"></script>
+<script src="../dist/gitglass.min.js"></script>
+<script>
+  var view = null;
+  function load() {
+    if (view) view.destroy();
+    view = GitGlass.mount(document.getElementById('host'), {
+      repo: document.getElementById('repo').value.trim(),
+      theme: document.getElementById('theme').value
+    });
+  }
+  document.getElementById('theme').addEventListener('change', load);
+  document.getElementById('go').addEventListener('click', load);
+  load();
+</script>
 </body>
 </html>

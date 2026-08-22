@@ -1,0 +1,18 @@
+{
+  "name": "gitglass",
+  "version": "1.0.0",
+  "description": "Embed a VS Code-style, read-only GitHub repo browser in any static page. Zero dependencies.",
+  "license": "MIT",
+  "repository": "github:gdhami-net/gitglass",
+  "main": "dist/gitglass.min.js",
+  "style": "dist/gitglass.min.css",
+  "files": ["dist", "gitglass.js", "gitglass.css", "gitglass.themes.css", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/highlight.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "keywords": ["github", "repo", "viewer", "code", "embed", "vscode", "syntax-highlighting", "zero-dependency"]
+}
