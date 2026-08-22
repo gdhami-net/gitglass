@@ -38,21 +38,21 @@
   <div id="host"></div>
 
   <h2>Snippet mode — one file, a line range, zero API calls</h2>
-  <p><code>data-gitglass="gdhami-net/gitglass#gitglass.js:L178-L196"</code> renders just that slice, live from the repo, with real line numbers and a link to the exact lines on GitHub. "whole file" expands in place.</p>
-  <div data-gitglass="gdhami-net/gitglass#gitglass.js:L178-L196" data-gitglass-theme="github-dark"></div>
+  <p><code>data-gitglass="gdhami-net/gitglass#gitglass.js:L184-L205"</code> renders just that slice, live from the repo, with real line numbers and a link to the exact lines on GitHub. "whole file" expands in place.</p>
+  <div data-gitglass="gdhami-net/gitglass#gitglass.js:L184-L205" data-gitglass-theme="github-dark"></div>
 
   <h2>Guided tour — walk a reader through a repo</h2>
   <p>Drop a JSON script inside the host element: each step opens a file, highlights a line range, and explains it. Arrow keys work when the viewer has focus.</p>
   <div data-gitglass="gdhami-net/gitglass" data-gitglass-theme="nord">
     <script type="application/json">
     {"steps": [
-      {"file": "gitglass.js", "lines": [28, 42], "title": "One attribute, three shapes",
+      {"file": "gitglass.js", "lines": [29, 43], "title": "One attribute, three shapes",
        "text": "parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target. That is the whole public surface."},
-      {"file": "gitglass.js", "lines": [57, 80], "title": "One API call per repo",
+      {"file": "gitglass.js", "lines": [64, 88], "title": "One API call per repo",
        "text": "The recursive trees endpoint returns every path at once. It is cached in sessionStorage so a reader browsing ten files costs one request."},
-      {"file": "gitglass.js", "lines": [178, 196], "title": "Highlighting that fits in 9 KB",
+      {"file": "gitglass.js", "lines": [184, 205], "title": "Highlighting that fits in 10 KB",
        "text": "Escape first, then a single regex pass per language for comments, strings, numbers, and keywords. Not a tokenizer — that is the trade for the size."},
-      {"file": "gitglass.js", "lines": [202, 213], "title": "Spans that survive line breaks",
+      {"file": "gitglass.js", "lines": [208, 219], "title": "Spans that survive line breaks",
        "text": "Block comments cross lines, but each rendered line must be balanced HTML. splitLines closes and reopens the token span at every break."},
       {"file": "gitglass.css", "lines": [108, 118], "title": "Lines, not one big pre",
        "text": "Each line is its own element so a tour can highlight a range and scroll to it. Line numbers live in the same element, so they never drift."}

@@ -1,6 +1,6 @@
 {
   "name": "gitglass",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Embed a VS Code-style, read-only GitHub repo browser in any static page. Zero dependencies.",
   "license": "MIT",
   "repository": "github:gdhami-net/gitglass",

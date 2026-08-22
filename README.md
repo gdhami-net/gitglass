@@ -1,15 +1,16 @@
 # gitglass
 
 Embed a VS Code-style, **read-only** GitHub repo browser in any static
-page. File tree, tabs, syntax highlighting, line numbers, fullscreen,
-themes, snippet mode, guided tours, copy, tab scrolling — **8.8 KB min+gzip, zero dependencies, zero build step, zero
-backend.**
+page. File tree with file-type icons, tabs, syntax highlighting, line
+numbers, fullscreen, themes, snippet mode, guided tours, copy, tab
+scrolling, on-demand folders for huge repos — **9.9 KB min+gzip, zero
+dependencies, zero build step, zero backend.**
 
 | file | minified | min+gzip |
 | --- | --- | --- |
-| `dist/gitglass.min.js` | 22.5 KB | **8.8 KB** |
-| `dist/gitglass.min.css` | 6.8 KB | 2.0 KB |
-| `dist/gitglass.themes.min.css` (11 presets, optional) | 3.0 KB | 0.9 KB |
+| `dist/gitglass.min.js` | 25.7 KB | **9.9 KB** |
+| `dist/gitglass.min.css` | 8.1 KB | 2.4 KB |
+| `dist/gitglass.themes.min.css` (11 presets, optional) | 3.8 KB | 1.1 KB |
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
 extracted because it turned out to be generally useful.
@@ -31,7 +32,9 @@ const view = GitGlass.mount(document.querySelector('#viewer'), {
   repo: 'gdhami-net/gitglass',
   branch: 'master',        // optional — auto-detects main/master
   open: 'gitglass.js',     // optional — file to open first
-  theme: 'github-dark'     // optional — see themes
+  theme: 'github-dark',    // optional — see themes
+  lazy: false,             // optional — list folders on demand (see "Big repos")
+  expand: 'auto'           // optional — 'auto' opens every folder of a small repo; 'all' | 'none'
 });
 view.open('README.md');    // open another file
 view.destroy();            // abort pending fetches, remove the DOM
@@ -63,6 +66,26 @@ snippet, `{ repo, tour: { steps } }` for a tour; `view.goto(file, [a, b])`
 highlights any range, `view.tour.next()/prev()/go(i)` drive a tour. Arrow
 keys work while the viewer has focus.
 
+## Big repos (v1.2)
+
+By default one API call fetches the whole tree, folders render their
+rows the first time they open, and a folder with hundreds of entries
+shows a hundred at a time behind a **"show more"** row. Repos past
+GitHub's single-listing limit (≈100k entries) switch automatically to
+**on-demand mode**: the root lists first and each folder lists itself
+when opened — one API call per folder, cached for the session by its
+tree sha. Opt a known-huge repo into that mode from the start with
+`data-gitglass-lazy` (or `{ lazy: true }`) so the first paint never
+downloads a multi-megabyte tree:
+
+```html
+<div data-gitglass="dotnet/runtime" data-gitglass-lazy></div>
+```
+
+Small repos (≤ 60 entries) open fully expanded; larger ones open
+collapsed with the active file's folders revealed. `data-gitglass-expand="all|none"`
+(or `{ expand }`) overrides that.
+
 ## Themes and styling
 
 Every color is a CSS variable on `.gg` (`--gg-bg`, `--gg-side`, `--gg-kw`,
@@ -79,18 +102,20 @@ Load `dist/gitglass.themes.min.css` for named presets and set
 
 - Fetches the tree and files **live from the GitHub API** at view time —
   it can never drift from the repo. Session-cached: one API call per repo.
-- Collapsible folder tree; real tabs (open/switch/close, **middle-click or
-  Ctrl/Cmd+W closes**); the tab strip scrolls with edge fades when it
-  overflows, with ‹ › scroll arrows when it does; hover the tab bar for a
-  **copy-file** button; line-number gutter; status bar; maximize to
-  fullscreen (Esc restores).
+- Collapsible folder tree with **file-type icons** (CSS badges, no icon
+  font — a coloured `C#`, `TS`, `{}` … per kind, folder glyphs in
+  `--gg-folder`); opening a file reveals it in the tree; real tabs
+  (open/switch/close, **middle-click or Ctrl/Cmd+W closes**); the tab strip
+  scrolls with edge fades when it overflows, with ‹ › scroll arrows when it
+  does; hover the tab bar for a **copy-file** button; line-number gutter;
+  status bar; maximize to fullscreen (Esc restores).
 - **Responsive**: under 720px of container width the file tree folds behind
   a ☰ button as an overlay.
 - Lightweight highlighting for **C#, TypeScript/JavaScript (incl. Vue/Svelte
   SFC), Python, Go, Rust, Java, Kotlin, Swift, PHP, Ruby, SQL, CSS/SCSS,
   shell/PowerShell, C/C++, Dockerfile, JSON, XML/HTML/Razor, YAML/TOML/ini**
   — plain text for everything else. It's keyword/string/comment/number
-  level by design, not a full tokenizer: that's how it stays under 9 KB. CSS gets a dedicated pass (selectors, properties, values).
+  level by design, not a full tokenizer: that's how it stays under 10 KB. CSS gets a dedicated pass (selectors, properties, values).
 - Degrades honestly: offline or rate-limited, it shows why (including the
   rate-limit reset time) and links to the repo on GitHub.
 
@@ -111,10 +136,12 @@ Load `dist/gitglass.themes.min.css` for named presets and set
 
 - **Public repos only**, unauthenticated: GitHub allows 60 API requests per
   hour per visitor IP. One repo tree costs one request; file contents come
-  from `raw.githubusercontent.com`, which is separate.
+  from `raw.githubusercontent.com`, which is separate. On-demand mode
+  spends one request per folder opened, so it is the right trade only for
+  repos whose full tree would be huge.
 - Read-only by design — a viewer, not an editor.
-- Very large repos: GitHub truncates trees past ~100k entries; the status bar
-  says so rather than pretending.
+- Folders are paged at 100 rows; a folder behind an unclicked "show more"
+  can't be auto-revealed when a tour or `open` points into it.
 
 ## Development
 

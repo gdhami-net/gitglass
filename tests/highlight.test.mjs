@@ -63,3 +63,16 @@ test('splitLines keeps token spans balanced across line breaks', () => {
   }
   assert.ok(lines[1].startsWith('<span class="gg-cm">'), 'comment continues on the second line');
 });
+
+test('iconFor picks a badge by extension, falls back to a plain file', () => {
+  const { iconFor } = globalThis.GitGlass;
+  assert.equal(iconFor('src/Program.cs'), 'cs');
+  assert.equal(iconFor('Demo.csproj'), 'cs');
+  assert.equal(iconFor('app/main.ts'), 'ts');
+  assert.equal(iconFor('dist/gitglass.min.js'), 'js');
+  assert.equal(iconFor('README.md'), 'md');
+  assert.equal(iconFor('index.html'), 'xml');
+  assert.equal(iconFor('.gitignore'), 'yaml');
+  assert.equal(iconFor('LICENSE'), 'file');
+  assert.equal(iconFor('notes.unknownext'), 'file');
+});

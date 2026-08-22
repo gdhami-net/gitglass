@@ -1,11 +1,12 @@
-/*! gitglass v1.1 — embed a VS Code-style, read-only GitHub repo browser in any static page.
+/*! gitglass v1.2 — embed a VS Code-style, read-only GitHub repo browser in any static page.
  *  Zero dependencies. MIT. https://github.com/gdhami-net/gitglass
  *
  *  Repo browser:   <div data-gitglass="owner/repo" data-gitglass-theme="github-dark"></div>
+ *  Big repo:       <div data-gitglass="dotnet/runtime" data-gitglass-lazy></div>   (folders list on demand)
  *  Snippet:        <div data-gitglass="owner/repo#src/file.cs:L10-L40"></div>
  *  Guided tour:    <div data-gitglass="owner/repo"><script type="application/json">{"steps":[...]}</script></div>
  *
- *  var view = GitGlass.mount(el, { repo, branch, open, theme, path, lines: [10, 40], tour: { steps } });
+ *  var view = GitGlass.mount(el, { repo, branch, open, theme, lazy, expand: 'auto'|'all'|'none', path, lines: [10, 40], tour: { steps } });
  *  view.goto('src/file.cs', [10, 40]); view.open(path); view.destroy();
  */
 (function () {
@@ -54,22 +55,27 @@
     return new Error('HTTP ' + r.status);
   }
 
-  function getTree(repo, branch, signal) {
-    var key = 'gitglass:' + repo + '@' + (branch || 'auto');
+  var API = 'https://api.github.com/repos/';
+  function ghJson(url, signal) {
+    return fetch(url, { signal: signal }).then(function (r) { if (!r.ok) throw ghError(r); return r.json(); });
+  }
+
+  /* Whole tree in one call (default), or just the root when `lazy` — then each folder lists itself on demand. */
+  function getTree(repo, branch, signal, lazy) {
+    var key = 'gitglass:' + repo + '@' + (branch || 'auto') + (lazy ? '#lazy' : '');
     try {
       var hit = sessionStorage.getItem(key);
       if (hit) return Promise.resolve(JSON.parse(hit));
     } catch (e) { /* private mode */ }
     var attempt = function (b) {
-      return fetch('https://api.github.com/repos/' + repo + '/git/trees/' + encodeURIComponent(b) + '?recursive=1', { signal: signal })
-        .then(function (r) { if (!r.ok) throw ghError(r); return r.json(); })
+      return ghJson(API + repo + '/git/trees/' + encodeURIComponent(b) + (lazy ? '' : '?recursive=1'), signal)
         .then(function (j) {
           return {
             branch: b,
             truncated: !!j.truncated,
             items: j.tree
               .filter(function (t) { return !SKIP.test(t.path); })
-              .map(function (t) { return { path: t.path, type: t.type }; })
+              .map(function (t) { return { path: t.path, type: t.type, sha: lazy && t.type === 'tree' ? t.sha : undefined }; })
           };
         });
     };
@@ -224,43 +230,150 @@
   }
 
   /* ---------- tree ---------- */
+  var PAGE = 100;   // rows rendered per folder before a "show more" link
+  var ICONS = { cs: 'C#', ts: 'TS', js: 'JS', py: 'PY', go: 'GO', rs: 'RS', java: 'J', kt: 'KT', swift: 'SW', php: 'PH', rb: 'RB', sql: 'DB', css: '#', sh: '>_', c: 'C', dockerfile: 'DK', json: '{}', xml: '<>', yaml: 'CF', md: 'M↓', vue: 'V', svelte: 'S' };
+  var ICON_EXT = { html: 'xml', htm: 'xml', svg: 'xml', md: 'md', markdown: 'md', js: 'js', jsx: 'js', mjs: 'js', cjs: 'js', csproj: 'cs', sln: 'cs', props: 'cs', targets: 'cs', vue: 'vue', svelte: 'svelte' };
+
+  function iconFor(path) {
+    var base = path.split('/').pop().toLowerCase();
+    var ext = base.indexOf('.') !== -1 ? base.split('.').pop() : base.replace(/^\./, '');
+    var k = ICON_EXT[ext] || langFor(path);
+    return ICONS[k] ? k : 'file';
+  }
+
+  function dirNode(path, sha) { return { path: path, sha: sha || null, loaded: !sha, dirs: {}, files: [] }; }
+
   function buildHierarchy(items) {
-    var root = { dirs: {}, files: [] };
+    var root = dirNode('', null);
     items.forEach(function (it) {
-      var segs = it.path.split('/');
-      var node = root;
-      for (var i = 0; i < segs.length - 1; i++) {
-        node = node.dirs[segs[i]] || (node.dirs[segs[i]] = { dirs: {}, files: [] });
+      var segs = it.path.split('/'), node = root, i;
+      for (i = 0; i < segs.length - 1; i++) {
+        node = node.dirs[segs[i]] || (node.dirs[segs[i]] = dirNode(segs.slice(0, i + 1).join('/'), null));
       }
-      if (it.type === 'blob') node.files.push({ name: segs[segs.length - 1], path: it.path });
-      else if (!node.dirs[segs[segs.length - 1]]) node.dirs[segs[segs.length - 1]] = { dirs: {}, files: [] };
+      var name = segs[segs.length - 1];
+      if (it.type === 'blob') node.files.push({ name: name, path: it.path });
+      else if (!node.dirs[name]) node.dirs[name] = dirNode(it.path, it.sha);
     });
     return root;
   }
 
-  function renderDir(view, node, container, depth) {
-    Object.keys(node.dirs).sort().forEach(function (name) {
-      var row = el('div', 'gg-row');
-      row.style.paddingLeft = (12 + depth * 14) + 'px';
-      var chev = el('span', 'gg-chev', '▾');
-      row.appendChild(chev);
-      row.appendChild(el('span', null, name));
-      var kids = el('div');
+  /* lazy mode: list one folder (by its immutable tree sha — cached forever for the session) */
+  function fetchDir(view, node) {
+    if (node.loaded) return Promise.resolve(node);
+    var key = 'gitglass:t:' + node.sha;
+    var fill = function (tree) {
+      tree.forEach(function (t) {
+        if (t.type === 'tree') node.dirs[t.path] = dirNode(node.path + '/' + t.path, t.sha);
+        else if (t.type === 'blob' && !SKIP.test(t.path)) node.files.push({ name: t.path, path: node.path + '/' + t.path });
+      });
+      node.loaded = true;
+      return node;
+    };
+    try {
+      var hit = sessionStorage.getItem(key);
+      if (hit) return Promise.resolve(fill(JSON.parse(hit)));
+    } catch (e) { /* private mode */ }
+    return ghJson(API + view.repo + '/git/trees/' + node.sha, view.signal).then(function (j) {
+      var slim = j.tree.map(function (t) { return { path: t.path, type: t.type, sha: t.type === 'tree' ? t.sha : undefined }; });
+      try { sessionStorage.setItem(key, JSON.stringify(slim)); } catch (e) { /* full */ }
+      return fill(slim);
+    });
+  }
+
+  function entriesOf(node) {
+    var dirs = Object.keys(node.dirs).sort().map(function (n) { return { dir: true, name: n, node: node.dirs[n] }; });
+    var files = node.files.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+    return dirs.concat(files);
+  }
+
+  /* Folders first, then files; PAGE rows at a time, the rest behind a "show more" row. */
+  function renderChildren(view, node, container, depth) {
+    var entries = entriesOf(node), i = 0;
+    var chunk = function () {
+      var end = Math.min(entries.length, i + PAGE);
+      for (; i < end; i++) renderEntry(view, entries[i], container, depth);
+      if (i < entries.length) {
+        var left = entries.length - i;
+        var more = el('div', 'gg-row gg-more', 'show ' + Math.min(PAGE, left) + ' more · ' + left + ' left');
+        more.style.paddingLeft = (12 + depth * 14 + 18) + 'px';
+        more.addEventListener('click', function () { container.removeChild(more); chunk(); });
+        container.appendChild(more);
+      }
+    };
+    chunk();
+  }
+
+  /* A folder's rows are built the first time it opens (and, in lazy mode, listed from GitHub right then). */
+  function renderEntry(view, e, container, depth) {
+    var row = el('div', 'gg-row' + (e.dir ? '' : ' gg-file'));
+    row.style.paddingLeft = (12 + depth * 14 + (e.dir ? 0 : 18)) + 'px';
+    if (!e.dir) {
+      var k = iconFor(e.path);
+      row.appendChild(el('span', 'gg-ico gg-i-' + k, ICONS[k] || ''));
+      row.appendChild(el('span', 'gg-name', e.name));
+      row.dataset.path = e.path;
+      row.addEventListener('click', function () { openFile(view, e.path); if (view.narrow) hideSide(view); });
       container.appendChild(row);
-      container.appendChild(kids);
-      renderDir(view, node.dirs[name], kids, depth + 1);
-      row.addEventListener('click', function () {
-        var closed = kids.style.display === 'none';
-        kids.style.display = closed ? '' : 'none';
-        chev.textContent = closed ? '▾' : '▸';
+      return;
+    }
+    var node = e.node, chev = el('span', 'gg-chev', '▸'), kids = el('div'), open = false, built = null;
+    kids.style.display = 'none';
+    row.appendChild(chev);
+    row.appendChild(el('span', 'gg-ico gg-i-dir'));
+    row.appendChild(el('span', 'gg-name', e.name));
+    container.appendChild(row);
+    container.appendChild(kids);
+    node.isOpen = function () { return open; };
+    node.toggle = function () {
+      open = !open;
+      chev.textContent = open ? '▾' : '▸';
+      row.classList.toggle('gg-open', open);
+      kids.style.display = open ? '' : 'none';
+      if (!open || built) return built || Promise.resolve();
+      if (node.loaded) { renderChildren(view, node, kids, depth + 1); return (built = Promise.resolve()); }
+      kids.textContent = '';
+      var wait = el('div', 'gg-row gg-wait', 'listing …');
+      wait.style.paddingLeft = (12 + (depth + 1) * 14 + 18) + 'px';
+      kids.appendChild(wait);
+      return (built = fetchDir(view, node).then(function () {
+        kids.textContent = '';
+        renderChildren(view, node, kids, depth + 1);
+        markActiveRow(view);
+      }, function (err) {
+        built = null;
+        if (err.name === 'AbortError') return;
+        wait.textContent = 'could not list folder — ' + err.message;
+      }));
+    };
+    row.addEventListener('click', function () { node.toggle(); });
+  }
+
+  /* Open every folder on the way to `path` and scroll the sidebar (not the page) to it. */
+  function reveal(view, path) {
+    if (!view.tree) return;
+    var segs = path.split('/'), node = view.tree, p = Promise.resolve();
+    segs.pop();
+    segs.forEach(function (seg) {
+      p = p.then(function () {
+        node = node.dirs[seg];
+        if (!node || !node.toggle) throw new Error('unrendered');
+        return node.isOpen() ? null : node.toggle();
       });
     });
-    node.files.sort(function (a, b) { return a.name < b.name ? -1 : 1; }).forEach(function (f) {
-      var row = el('div', 'gg-row gg-file', f.name);
-      row.style.paddingLeft = (12 + depth * 14 + 18) + 'px';
-      row.dataset.path = f.path;
-      row.addEventListener('click', function () { openFile(view, f.path); if (view.narrow) hideSide(view); });
-      container.appendChild(row);
+    return p.then(function () {
+      markActiveRow(view);
+      var r = view.side.querySelector('.gg-file.gg-active'), s = view.side;
+      if (!r) return;
+      var y = r.offsetTop - s.offsetTop;
+      if (y < s.scrollTop || y > s.scrollTop + s.clientHeight - 28) s.scrollTop = y - s.clientHeight / 2;
+    }, function () { /* folder sits behind a "show more" row — nothing to reveal */ });
+  }
+
+  function expandAll(node) {
+    Object.keys(node.dirs).forEach(function (n) {
+      var d = node.dirs[n];
+      if (d.toggle && !d.isOpen()) d.toggle();
+      if (d.loaded) expandAll(d);
     });
   }
 
@@ -375,6 +488,7 @@
     if (view.openFiles.indexOf(path) === -1) view.openFiles.push(path);
     renderTabs(view);
     markActiveRow(view);
+    if (view.side) reveal(view, path);
     if (view.cache[path] != null) return showFile(view, path);
     view.code.innerHTML = '';
     setStatus(view, 'loading ' + path + ' …');
@@ -631,11 +745,18 @@
         view.ro = ro;
       }
 
+      var lazy = opts.lazy != null ? !!opts.lazy : host.hasAttribute('data-gitglass-lazy');
+      var expand = opts.expand || host.getAttribute('data-gitglass-expand') || 'auto';
       setStatus(view, 'loading repository …');
-      getTree(repo, opts.branch, view.signal).then(function (t) {
+      getTree(repo, opts.branch, view.signal, lazy).then(function (t) {
+        if (t.truncated && !lazy) { lazy = true; return getTree(repo, t.branch, view.signal, true); }   // past GitHub's limit: go folder by folder
+        return t;
+      }).then(function (t) {
         view.branch = t.branch;
-        renderDir(view, buildHierarchy(t.items), side, 0);
-        setStatus(view, t.truncated ? 'tree truncated by GitHub (very large repo)' : '');
+        view.tree = buildHierarchy(t.items);
+        renderChildren(view, view.tree, side, 0);
+        setStatus(view, lazy ? 'large repo · folders list on demand' : '');
+        if (!lazy && (expand === 'all' || (expand === 'auto' && t.items.length <= 60))) expandAll(view.tree);
         if (tour && tour.steps && tour.steps.length) {
           buildTour(view, tour).go(0);
           return;
@@ -693,5 +814,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { scan(); });
   else scan();
 
-  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, parseTarget: parseTarget, splitLines: splitLines, version: '1.1.0' };
+  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, iconFor: iconFor, parseTarget: parseTarget, splitLines: splitLines, version: '1.2.0' };
 })();

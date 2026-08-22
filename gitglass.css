@@ -183,3 +183,41 @@
   font-size: 12.5px; color: var(--gg-muted); flex-shrink: 0;
 }
 @media (prefers-reduced-motion: reduce) { .gg-line, .gg-tour-anim { transition: none; animation: none; } }
+
+/* ---- v1.2: file-type icons, on-demand folders, paged folders ---- */
+.gg { --gg-folder: #d4a657; }
+.gg-row { align-items: center; }
+.gg-name { overflow: hidden; text-overflow: ellipsis; }
+.gg-ico {
+  width: 16px; height: 16px; flex-shrink: 0; position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 700 8.5px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: -0.2px;
+  color: var(--gg-faint);
+}
+.gg-i-file::before { content: ''; width: 10px; height: 12px; border: 1.5px solid currentColor; border-radius: 1.5px; opacity: .7; }
+.gg-i-dir::before { content: ''; position: absolute; left: 1px; top: 2px; width: 6px; height: 3px; background: var(--gg-folder); border-radius: 1px 1px 0 0; }
+.gg-i-dir::after { content: ''; position: absolute; left: 1px; top: 4px; width: 14px; height: 10px; background: var(--gg-folder); border-radius: 1px 2px 2px 2px; }
+.gg-row.gg-open .gg-i-dir::after { opacity: .75; }
+.gg-more { color: var(--gg-accent); font-size: 11.5px; }
+.gg-wait { color: var(--gg-faint); font-size: 11.5px; cursor: default; }
+.gg-i-ts { color: #3b8eea; }
+.gg-i-js, .gg-i-json { color: #c9a227; }
+.gg-i-cs { color: #9b6bd1; }
+.gg-i-css { color: #42a5f5; }
+.gg-i-xml { color: #e8793e; }
+.gg-i-md { color: #519aba; }
+.gg-i-py { color: #4b8bbe; }
+.gg-i-go { color: #00add8; }
+.gg-i-rs { color: #d98c5f; }
+.gg-i-java { color: #e05d44; }
+.gg-i-kt { color: #7f52ff; }
+.gg-i-swift { color: #f05138; }
+.gg-i-php { color: #7a86b8; }
+.gg-i-rb { color: #d34231; }
+.gg-i-sql { color: #b8962e; }
+.gg-i-sh { color: #5fae5a; }
+.gg-i-c { color: #5c9bd6; }
+.gg-i-dockerfile { color: #2496ed; }
+.gg-i-yaml { color: var(--gg-dim); }
+.gg-i-vue { color: #41b883; }
+.gg-i-svelte { color: #ff3e00; }
