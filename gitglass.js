@@ -1,12 +1,12 @@
-/*! gitglass v1.0 — embed a VS Code-style, read-only GitHub repo browser in any static page.
+/*! gitglass v1.1 — embed a VS Code-style, read-only GitHub repo browser in any static page.
  *  Zero dependencies. MIT. https://github.com/gdhami-net/gitglass
  *
- *  <link rel="stylesheet" href="dist/gitglass.min.css">
- *  <script src="dist/gitglass.min.js"></script>
- *  <div data-gitglass="owner/repo" data-gitglass-theme="github-dark"></div>
+ *  Repo browser:   <div data-gitglass="owner/repo" data-gitglass-theme="github-dark"></div>
+ *  Snippet:        <div data-gitglass="owner/repo#src/file.cs:L10-L40"></div>
+ *  Guided tour:    <div data-gitglass="owner/repo"><script type="application/json">{"steps":[...]}</script></div>
  *
- *  or: var view = GitGlass.mount(el, { repo: 'owner/repo', branch: 'main', open: 'README.md', theme: 'monokai' });
- *      view.destroy();   // aborts pending fetches and removes the DOM (SPA unmount)
+ *  var view = GitGlass.mount(el, { repo, branch, open, theme, path, lines: [10, 40], tour: { steps } });
+ *  view.goto('src/file.cs', [10, 40]); view.open(path); view.destroy();
  */
 (function () {
   'use strict';
@@ -22,6 +22,23 @@
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
+  }
+
+  /* ---------- target spec: "owner/repo", "owner/repo#path", "owner/repo#path:L10-L40" ---------- */
+  function parseTarget(spec) {
+    spec = (spec || '').trim();
+    var hash = spec.indexOf('#');
+    var out = { repo: hash === -1 ? spec : spec.slice(0, hash), path: null, lines: null };
+    if (hash !== -1) {
+      var rest = spec.slice(hash + 1);
+      var lm = rest.match(/:L(\d+)(?:-L?(\d+))?$/);
+      if (lm) {
+        out.lines = [parseInt(lm[1], 10), parseInt(lm[2] || lm[1], 10)];
+        rest = rest.slice(0, lm.index);
+      }
+      out.path = rest || null;
+    }
+    return out;
   }
 
   /* ---------- github ---------- */
@@ -64,11 +81,25 @@
     });
   }
 
-  function getFile(repo, branch, path, signal) {
-    var url = 'https://raw.githubusercontent.com/' + repo + '/' + encodeURIComponent(branch) + '/' +
+  function rawUrl(repo, branch, path) {
+    return 'https://raw.githubusercontent.com/' + repo + '/' + encodeURIComponent(branch) + '/' +
       path.split('/').map(encodeURIComponent).join('/');
-    return fetch(url, { signal: signal })
+  }
+
+  function getFile(repo, branch, path, signal) {
+    return fetch(rawUrl(repo, branch, path), { signal: signal })
       .then(function (r) { if (!r.ok) throw ghError(r); return r.text(); });
+  }
+
+  /* snippet mode never touches the API: raw fetch with main→master fallback */
+  function getFileAuto(repo, branch, path, signal) {
+    if (branch) return getFile(repo, branch, path, signal).then(function (t) { return { branch: branch, text: t }; });
+    return getFile(repo, 'main', path, signal)
+      .then(function (t) { return { branch: 'main', text: t }; })
+      .catch(function (err) {
+        if (err.name === 'AbortError') throw err;
+        return getFile(repo, 'master', path, signal).then(function (t) { return { branch: 'master', text: t }; });
+      });
   }
 
   /* ---------- highlighting: tiny regex packs, per language ---------- */
@@ -150,6 +181,31 @@
     });
   }
 
+  /* Split highlighted HTML into lines, re-balancing the (never-nested) token spans. */
+  function splitLines(html) {
+    var lines = html.split('\n'), out = [], open = null;
+    var re = /<span class="([^"]+)">|<\/span>/g;
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i], cur = open, m;
+      re.lastIndex = 0;
+      while ((m = re.exec(l))) cur = m[1] ? m[1] : null;
+      out.push((open ? '<span class="' + open + '">' : '') + l + (cur ? '</span>' : ''));
+      open = cur;
+    }
+    return out;
+  }
+
+  function renderLines(view, text, lang, from, to) {
+    var lines = splitLines(highlight(text, lang));
+    var a = Math.max(1, from || 1), b = Math.min(lines.length, to || lines.length);
+    var html = '';
+    for (var i = a; i <= b; i++) {
+      html += '<div class="gg-line" data-n="' + i + '"><span class="gg-ln">' + i + '</span><span class="gg-lt">' + (lines[i - 1] || ' ') + '</span></div>';
+    }
+    view.code.innerHTML = html;
+    view.lineCount = lines.length;
+  }
+
   /* ---------- tree ---------- */
   function buildHierarchy(items) {
     var root = { dirs: {}, files: [] };
@@ -199,13 +255,14 @@
     if (view.active === path) {
       view.active = view.openFiles[i] || view.openFiles[i - 1] || null;
       if (view.active) showFile(view, view.active);
-      else { view.code.innerHTML = ''; view.gutter.textContent = ''; setStatus(view, ''); }
+      else { view.code.innerHTML = ''; setStatus(view, ''); }
     }
     renderTabs(view);
     markActiveRow(view);
   }
 
   function renderTabs(view) {
+    if (!view.tabs) return;
     view.tabs.textContent = '';
     view.openFiles.forEach(function (path) {
       var tab = el('div', 'gg-tab' + (path === view.active ? ' gg-active' : ''));
@@ -216,7 +273,7 @@
       x.addEventListener('click', function (e) { e.stopPropagation(); closeTab(view, path); });
       tab.appendChild(x);
       tab.addEventListener('click', function () { openFile(view, path); });
-      tab.addEventListener('auxclick', function (e) {        // middle-click closes
+      tab.addEventListener('auxclick', function (e) {
         if (e.button === 1) { e.preventDefault(); closeTab(view, path); }
       });
       tab.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
@@ -226,6 +283,7 @@
   }
 
   function markActiveRow(view) {
+    if (!view.side) return;
     [].forEach.call(view.side.querySelectorAll('.gg-file'), function (r) {
       r.classList.toggle('gg-active', r.dataset.path === view.active);
     });
@@ -236,16 +294,25 @@
     view.statusR.textContent = right;
   }
 
+  function applyHighlight(view) {
+    var hl = view.hl;
+    [].forEach.call(view.code.querySelectorAll('.gg-line.gg-hl'), function (l) { l.classList.remove('gg-hl'); });
+    if (!hl || hl.file !== view.active) return;
+    var first = null;
+    [].forEach.call(view.code.querySelectorAll('.gg-line'), function (l) {
+      var n = parseInt(l.dataset.n, 10);
+      if (n >= hl.lines[0] && n <= hl.lines[1]) { l.classList.add('gg-hl'); if (!first) first = l; }
+    });
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center' });
+  }
+
   function showFile(view, path) {
     var text = view.cache[path];
     var lang = langFor(path);
-    var lines = text.split('\n').length;
-    var nums = [];
-    for (var i = 1; i <= lines; i++) nums.push(i);
-    view.gutter.textContent = nums.join('\n');
-    view.code.innerHTML = highlight(text, lang);
+    renderLines(view, text, lang);
     view.body.scrollTop = 0;
-    setStatus(view, path + ' · ' + lines + ' lines · ' + lang);
+    setStatus(view, path + ' · ' + view.lineCount + ' lines · ' + lang);
+    applyHighlight(view);
   }
 
   function openFile(view, path) {
@@ -255,7 +322,6 @@
     markActiveRow(view);
     if (view.cache[path] != null) return showFile(view, path);
     view.code.innerHTML = '';
-    view.gutter.textContent = '';
     setStatus(view, 'loading ' + path + ' …');
     getFile(view.repo, view.branch, path, view.signal).then(function (txt) {
       view.cache[path] = txt;
@@ -270,118 +336,226 @@
   function showSide(view) { view.root.classList.add('gg-side-open'); }
   function hideSide(view) { view.root.classList.remove('gg-side-open'); }
 
+  /* ---------- guided tour ---------- */
+  function buildTour(view, tour) {
+    var steps = (tour && tour.steps) || [];
+    if (!steps.length) return;
+    var panel = el('div', 'gg-tour');
+    var info = el('div', 'gg-tour-info');
+    var counter = el('span', 'gg-tour-n');
+    var title = el('span', 'gg-tour-title');
+    var text = el('div', 'gg-tour-text');
+    var head = el('div', 'gg-tour-head');
+    head.appendChild(counter);
+    head.appendChild(title);
+    info.appendChild(head);
+    info.appendChild(text);
+    var nav = el('div', 'gg-tour-nav');
+    var prev = el('button', 'gg-tour-btn', '‹ prev');
+    var next = el('button', 'gg-tour-btn gg-tour-next', 'next ›');
+    nav.appendChild(prev);
+    nav.appendChild(next);
+    panel.appendChild(info);
+    panel.appendChild(nav);
+    view.main.insertBefore(panel, view.status);
+    var i = 0;
+    function go(n) {
+      i = Math.max(0, Math.min(steps.length - 1, n));
+      var s = steps[i];
+      counter.textContent = (i + 1) + ' / ' + steps.length;
+      title.textContent = s.title || '';
+      text.textContent = s.text || '';
+      prev.disabled = i === 0;
+      next.textContent = i === steps.length - 1 ? 'done ✓' : 'next ›';
+      if (s.file) view.goto(s.file, s.lines || null);
+    }
+    prev.addEventListener('click', function () { go(i - 1); });
+    next.addEventListener('click', function () { if (i < steps.length - 1) go(i + 1); });
+    view.root.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); go(i - 1); }
+    });
+    view.tour = { go: go, next: function () { go(i + 1); }, prev: function () { go(i - 1); }, steps: steps, index: function () { return i; } };
+    return view.tour;
+  }
+
   /* ---------- mounting ---------- */
   function mount(host, opts) {
     opts = opts || {};
-    var repo = opts.repo || host.getAttribute('data-gitglass') || '';
+    var target = parseTarget(opts.repo || host.getAttribute('data-gitglass') || '');
+    var repo = target.repo;
     if (!REPO_RX.test(repo)) throw new Error('gitglass: expected "owner/repo", got ' + JSON.stringify(repo));
+    var path = opts.path || target.path;
+    var lines = opts.lines || target.lines;
     var theme = opts.theme || host.getAttribute('data-gitglass-theme');
+    var tour = opts.tour || null;
+    if (!tour) {
+      var js = host.querySelector('script[type="application/json"]');
+      if (js) { try { tour = JSON.parse(js.textContent); } catch (e) { tour = null; } }
+    }
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var snippet = !!path;
 
-    var rootEl = el('div', 'gg');
+    var rootEl = el('div', 'gg' + (snippet ? ' gg-snippet' : ''));
     if (theme) rootEl.setAttribute('data-theme', theme);
-    var side = el('div', 'gg-side');
     var main = el('div', 'gg-main');
-    var tabbar = el('div', 'gg-tabbar');
-    var filesBtn = el('button', 'gg-files');
-    filesBtn.setAttribute('aria-label', 'Toggle file list');
-    filesBtn.innerHTML = FILES_SVG;
-    var tabs = el('div', 'gg-tabs');
-    var maxBtn = el('button', 'gg-max');
-    maxBtn.setAttribute('aria-label', 'Maximize');
-    maxBtn.innerHTML = MAX_SVG;
-    maxBtn.addEventListener('click', function () {
-      var on = rootEl.classList.toggle('gg-fullscreen');
-      maxBtn.innerHTML = on ? MIN_SVG : MAX_SVG;
-      maxBtn.setAttribute('aria-label', on ? 'Restore' : 'Maximize');
-    });
-    tabbar.appendChild(filesBtn);
-    tabbar.appendChild(tabs);
-    tabbar.appendChild(maxBtn);
-    tabs.addEventListener('wheel', function (e) {        // vertical wheel scrolls the strip horizontally
-      if (e.deltaY && !e.deltaX && tabs.scrollWidth > tabs.clientWidth) {
-        e.preventDefault();
-        tabs.scrollLeft += e.deltaY;
-      }
-    }, { passive: false });
     var body = el('div', 'gg-body');
-    var gutter = el('div', 'gg-gutter');
-    var code = el('pre', 'gg-code');
+    var code = el('div', 'gg-code');
     var status = el('div', 'gg-status');
     var statusL = el('span');
     var statusR = el('span');
     status.appendChild(statusL);
     status.appendChild(statusR);
-    body.appendChild(gutter);
     body.appendChild(code);
-    main.appendChild(tabbar);
-    main.appendChild(body);
-    main.appendChild(status);
-    rootEl.appendChild(side);
-    rootEl.appendChild(main);
-    host.appendChild(rootEl);
 
     var view = {
-      repo: repo, branch: opts.branch || null, root: rootEl, host: host,
-      side: side, tabs: tabs, body: body, gutter: gutter, code: code,
+      repo: repo, branch: opts.branch || null, root: rootEl, host: host, main: main,
+      side: null, tabs: null, body: body, code: code, status: status,
       statusL: statusL, statusR: statusR,
-      openFiles: [], active: null, cache: {}, narrow: false,
+      openFiles: [], active: null, cache: {}, narrow: false, hl: null, lineCount: 0,
       signal: controller ? controller.signal : undefined
     };
-    filesBtn.addEventListener('click', function () {
-      if (rootEl.classList.contains('gg-side-open')) hideSide(view); else showSide(view);
-    });
-    rootEl.addEventListener('keydown', function (e) {   // ctrl/cmd+W closes active tab when focus is inside
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W') && view.active) {
-        e.preventDefault();
-        closeTab(view, view.active);
-      }
-    });
-    rootEl.tabIndex = 0;
 
-    view.narrow = rootEl.clientWidth > 0 && rootEl.clientWidth < 720;   // synchronous first check
-    rootEl.classList.toggle('gg-narrow', view.narrow);
-    if (typeof ResizeObserver !== 'undefined') {
-      var ro = new ResizeObserver(function (entries) {
-        var w = entries[0].contentRect.width;
-        view.narrow = w < 720;
-        rootEl.classList.toggle('gg-narrow', view.narrow);
-        if (!view.narrow) hideSide(view);
+    if (snippet) {
+      var head = el('div', 'gg-snip-head');
+      var pathEl = el('span', 'gg-snip-path', path + (lines ? ' · L' + lines[0] + (lines[1] !== lines[0] ? '–' + lines[1] : '') : ''));
+      var whole = el('button', 'gg-snip-btn', lines ? 'whole file' : '');
+      var gh = el('a', 'gg-snip-btn', 'GitHub ↗');
+      gh.rel = 'noopener';
+      gh.target = '_blank';
+      head.appendChild(pathEl);
+      if (lines) head.appendChild(whole);
+      head.appendChild(gh);
+      main.appendChild(head);
+      main.appendChild(body);
+      main.appendChild(status);
+      rootEl.appendChild(main);
+      host.appendChild(rootEl);
+      setStatus(view, 'loading …');
+      var expanded = false;
+      var draw = function () {
+        var t = view.cache[path];
+        renderLines(view, t, langFor(path), expanded ? null : lines && lines[0], expanded ? null : lines && lines[1]);
+        if (lines) {
+          view.hl = { file: path, lines: lines };
+          view.active = path;
+          if (expanded) applyHighlight(view);
+        }
+        setStatus(view, view.lineCount + ' lines · ' + langFor(path));
+      };
+      getFileAuto(repo, opts.branch, path, view.signal).then(function (res) {
+        view.branch = res.branch;
+        view.cache[path] = res.text;
+        gh.href = 'https://github.com/' + repo + '/blob/' + encodeURIComponent(res.branch) + '/' + path + (lines ? '#L' + lines[0] + '-L' + lines[1] : '');
+        draw();
+      }).catch(function (err) {
+        if (err.name === 'AbortError') return;
+        code.appendChild(el('div', 'gg-empty', 'Could not load ' + path + ' (' + err.message + ').'));
+        setStatus(view, '');
       });
-      ro.observe(rootEl);
-      view.ro = ro;
+      whole.addEventListener('click', function () {
+        expanded = !expanded;
+        whole.textContent = expanded ? 'just L' + lines[0] + '–' + lines[1] : 'whole file';
+        rootEl.classList.toggle('gg-expanded', expanded);
+        draw();
+      });
+    } else {
+      var side = el('div', 'gg-side');
+      var tabbar = el('div', 'gg-tabbar');
+      var filesBtn = el('button', 'gg-files');
+      filesBtn.setAttribute('aria-label', 'Toggle file list');
+      filesBtn.innerHTML = FILES_SVG;
+      var tabs = el('div', 'gg-tabs');
+      var maxBtn = el('button', 'gg-max');
+      maxBtn.setAttribute('aria-label', 'Maximize');
+      maxBtn.innerHTML = MAX_SVG;
+      maxBtn.addEventListener('click', function () {
+        var on = rootEl.classList.toggle('gg-fullscreen');
+        maxBtn.innerHTML = on ? MIN_SVG : MAX_SVG;
+        maxBtn.setAttribute('aria-label', on ? 'Restore' : 'Maximize');
+      });
+      tabbar.appendChild(filesBtn);
+      tabbar.appendChild(tabs);
+      tabbar.appendChild(maxBtn);
+      tabs.addEventListener('wheel', function (e) {
+        if (e.deltaY && !e.deltaX && tabs.scrollWidth > tabs.clientWidth) {
+          e.preventDefault();
+          tabs.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+      main.appendChild(tabbar);
+      main.appendChild(body);
+      main.appendChild(status);
+      rootEl.appendChild(side);
+      rootEl.appendChild(main);
+      host.appendChild(rootEl);
+      view.side = side;
+      view.tabs = tabs;
+
+      filesBtn.addEventListener('click', function () {
+        if (rootEl.classList.contains('gg-side-open')) hideSide(view); else showSide(view);
+      });
+      rootEl.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W') && view.active) {
+          e.preventDefault();
+          closeTab(view, view.active);
+        }
+      });
+      rootEl.tabIndex = 0;
+
+      view.narrow = rootEl.clientWidth > 0 && rootEl.clientWidth < 720;
+      rootEl.classList.toggle('gg-narrow', view.narrow);
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function (entries) {
+          var w = entries[0].contentRect.width;
+          view.narrow = w < 720;
+          rootEl.classList.toggle('gg-narrow', view.narrow);
+          if (!view.narrow) hideSide(view);
+        });
+        ro.observe(rootEl);
+        view.ro = ro;
+      }
+
+      setStatus(view, 'loading repository …');
+      getTree(repo, opts.branch, view.signal).then(function (t) {
+        view.branch = t.branch;
+        renderDir(view, buildHierarchy(t.items), side, 0);
+        setStatus(view, t.truncated ? 'tree truncated by GitHub (very large repo)' : '');
+        if (tour && tour.steps && tour.steps.length) {
+          buildTour(view, tour).go(0);
+          return;
+        }
+        var blobs = t.items.filter(function (i) { return i.type === 'blob'; }).map(function (i) { return i.path; });
+        var pick = opts.open ||
+          blobs.filter(function (p) { return /\.(cs|ts|tsx|js|py|go|rs|java|kt|swift|php|rb)$/.test(p); })
+               .sort(function (a, b) { return a.length - b.length; })[0] ||
+          blobs[0];
+        if (pick) openFile(view, pick);
+      }).catch(function (err) {
+        if (err.name === 'AbortError') return;
+        var empty = el('div', 'gg-empty');
+        empty.appendChild(document.createTextNode('Could not load the repository (' + err.message + '). '));
+        var a = el('a', null, 'Open it on GitHub →');
+        a.href = 'https://github.com/' + repo;
+        a.rel = 'noopener';
+        empty.appendChild(a);
+        side.appendChild(empty);
+        setStatus(view, '');
+      });
     }
 
-    setStatus(view, 'loading repository …');
-    getTree(repo, opts.branch, view.signal).then(function (t) {
-      view.branch = t.branch;
-      renderDir(view, buildHierarchy(t.items), side, 0);
-      setStatus(view, t.truncated ? 'tree truncated by GitHub (very large repo)' : '');
-      var blobs = t.items.filter(function (i) { return i.type === 'blob'; }).map(function (i) { return i.path; });
-      var pick = opts.open ||
-        blobs.filter(function (p) { return /\.(cs|ts|tsx|js|py|go|rs|java|kt|swift|php|rb)$/.test(p); })
-             .sort(function (a, b) { return a.length - b.length; })[0] ||
-        blobs[0];
-      if (pick) openFile(view, pick);
-    }).catch(function (err) {
-      if (err.name === 'AbortError') return;
-      var empty = el('div', 'gg-empty');
-      empty.appendChild(document.createTextNode('Could not load the repository (' + err.message + '). '));
-      var a = el('a', null, 'Open it on GitHub →');
-      a.href = 'https://github.com/' + repo;
-      a.rel = 'noopener';
-      empty.appendChild(a);
-      side.appendChild(empty);
-      setStatus(view, '');
-    });
-
+    view.goto = function (file, range) {
+      view.hl = range ? { file: file, lines: range } : null;
+      if (view.active === file && view.cache[file] != null) applyHighlight(view);
+      else openFile(view, file);
+    };
+    view.open = function (p) { openFile(view, p); };
     view.destroy = function () {
       if (controller) controller.abort();
       if (view.ro) view.ro.disconnect();
       if (rootEl.parentNode) rootEl.parentNode.removeChild(rootEl);
       host.removeAttribute('data-gg-mounted');
     };
-    view.open = function (path) { openFile(view, path); };
     return view;
   }
 
@@ -404,5 +578,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { scan(); });
   else scan();
 
-  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, version: '1.0.0' };
+  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, parseTarget: parseTarget, splitLines: splitLines, version: '1.1.0' };
 })();

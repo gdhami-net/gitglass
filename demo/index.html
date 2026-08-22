@@ -8,12 +8,14 @@
 <link rel="stylesheet" href="../dist/gitglass.themes.min.css">
 <style>
   body { margin: 0; background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; padding: 40px; }
-  h1 { font-size: 22px; margin: 0 0 6px 0; } p { color: #94a3b8; max-width: 680px; line-height: 1.5; }
+  h1 { font-size: 22px; margin: 0 0 6px 0; } h2 { font-size: 17px; margin: 48px 0 8px 0; }
+  p { color: #94a3b8; max-width: 680px; line-height: 1.5; }
   .wrap { max-width: 1000px; margin: 0 auto; }
   label { font-size: 13px; color: #94a3b8; margin-right: 8px; }
-  select { font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+  select, input { font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
   .row { display: flex; gap: 16px; align-items: center; margin: 18px 0; flex-wrap: wrap; }
-  .narrow { max-width: 420px; margin-top: 40px; }
+  .narrow { max-width: 420px; }
+  code { background: #1e293b; padding: 1px 6px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -30,11 +32,35 @@
       <option value="nord">nord</option>
     </select>
     <label for="repo">repo</label>
-    <input id="repo" value="gdhami-net/gitglass" style="font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; width: 260px;">
+    <input id="repo" value="gdhami-net/gitglass" style="width: 260px;">
     <button id="go" style="font: inherit; padding: 5px 12px; cursor: pointer;">load</button>
   </div>
   <div id="host"></div>
 
+  <h2>Snippet mode — one file, a line range, zero API calls</h2>
+  <p><code>data-gitglass="gdhami-net/gitglass#gitglass.js:L162-L180"</code> renders just that slice, live from the repo, with real line numbers and a link to the exact lines on GitHub. "whole file" expands in place.</p>
+  <div data-gitglass="gdhami-net/gitglass#gitglass.js:L162-L180" data-gitglass-theme="github-dark"></div>
+
+  <h2>Guided tour — walk a reader through a repo</h2>
+  <p>Drop a JSON script inside the host element: each step opens a file, highlights a line range, and explains it. Arrow keys work when the viewer has focus.</p>
+  <div data-gitglass="gdhami-net/gitglass" data-gitglass-theme="nord">
+    <script type="application/json">
+    {"steps": [
+      {"file": "gitglass.js", "lines": [28, 42], "title": "One attribute, three shapes",
+       "text": "parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target. That is the whole public surface."},
+      {"file": "gitglass.js", "lines": [57, 80], "title": "One API call per repo",
+       "text": "The recursive trees endpoint returns every path at once. It is cached in sessionStorage so a reader browsing ten files costs one request."},
+      {"file": "gitglass.js", "lines": [162, 180], "title": "Highlighting that fits in 8 KB",
+       "text": "Escape first, then a single regex pass per language for comments, strings, numbers, and keywords. Not a tokenizer — that is the trade for the size."},
+      {"file": "gitglass.js", "lines": [185, 196], "title": "Spans that survive line breaks",
+       "text": "Block comments cross lines, but each rendered line must be balanced HTML. splitLines closes and reopens the token span at every break."},
+      {"file": "gitglass.css", "lines": [108, 118], "title": "Lines, not one big pre",
+       "text": "Each line is its own element so a tour can highlight a range and scroll to it. Line numbers live in the same element, so they never drift."}
+    ]}
+    </script>
+  </div>
+
+  <h2>Narrow container</h2>
   <p class="narrow">The same viewer in a 420px column — below 720px the file tree folds behind the ☰ button.</p>
   <div class="narrow" data-gitglass="gdhami-net/gitglass" data-gitglass-theme="github-light"></div>
 </div>

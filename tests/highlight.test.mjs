@@ -44,3 +44,22 @@ test('language detection by extension and special names', () => {
   assert.equal(langFor('.gitignore'), 'yaml');
   assert.equal(langFor('notes.unknownext'), 'plain');
 });
+
+test('parseTarget handles repo, file, and line ranges', () => {
+  const { parseTarget } = globalThis.GitGlass;
+  assert.deepEqual(parseTarget('o/r'), { repo: 'o/r', path: null, lines: null });
+  assert.deepEqual(parseTarget('o/r#src/a.cs'), { repo: 'o/r', path: 'src/a.cs', lines: null });
+  assert.deepEqual(parseTarget('o/r#src/a.cs:L10-L40'), { repo: 'o/r', path: 'src/a.cs', lines: [10, 40] });
+  assert.deepEqual(parseTarget('o/r#src/a.cs:L7'), { repo: 'o/r', path: 'src/a.cs', lines: [7, 7] });
+});
+
+test('splitLines keeps token spans balanced across line breaks', () => {
+  const { highlight, splitLines } = globalThis.GitGlass;
+  const lines = splitLines(highlight('/* a\nb */ x', 'cs'));
+  assert.equal(lines.length, 2);
+  for (const l of lines) {
+    const opens = (l.match(/<span/g) || []).length, closes = (l.match(/<\/span>/g) || []).length;
+    assert.equal(opens, closes, `unbalanced spans in ${l}`);
+  }
+  assert.ok(lines[1].startsWith('<span class="gg-cm">'), 'comment continues on the second line');
+});

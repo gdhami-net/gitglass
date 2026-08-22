@@ -2,13 +2,13 @@
 
 Embed a VS Code-style, **read-only** GitHub repo browser in any static
 page. File tree, tabs, syntax highlighting, line numbers, fullscreen,
-themes — **6.3 KB min+gzip, zero dependencies, zero build step, zero
+themes, snippet mode, guided tours — **7.7 KB min+gzip, zero dependencies, zero build step, zero
 backend.**
 
 | file | minified | min+gzip |
 | --- | --- | --- |
-| `dist/gitglass.min.js` | 15.0 KB | **6.3 KB** |
-| `dist/gitglass.min.css` | 3.5 KB | 1.3 KB |
+| `dist/gitglass.min.js` | 19.0 KB | **7.7 KB** |
+| `dist/gitglass.min.css` | 5.3 KB | 1.7 KB |
 | `dist/gitglass.themes.min.css` (9 presets, optional) | 2.7 KB | 0.8 KB |
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
@@ -41,6 +41,28 @@ GitGlass.scan();           // mount any data-gitglass elements added later
 Framework wrappers (React/Next, Vue, Angular, Svelte) are in
 [`examples/`](examples/) — each is about ten lines because the core is plain DOM.
 
+## Snippets and guided tours (v1.1)
+
+```html
+<!-- one file, a line range, real line numbers, zero API calls -->
+<div data-gitglass="owner/repo#src/file.cs:L10-L40"></div>
+
+<!-- a guided tour: each step opens a file, highlights a range, explains it -->
+<div data-gitglass="owner/repo">
+  <script type="application/json">
+  {"steps": [
+    {"file": "src/Program.cs", "lines": [12, 20], "title": "Where requests enter", "text": "..."},
+    {"file": "src/Cache.cs", "lines": [40, 58], "title": "Single flight", "text": "..."}
+  ]}
+  </script>
+</div>
+```
+
+Programmatically: `GitGlass.mount(el, { repo, path, lines: [10, 40] })` for a
+snippet, `{ repo, tour: { steps } }` for a tour; `view.goto(file, [a, b])`
+highlights any range, `view.tour.next()/prev()/go(i)` drive a tour. Arrow
+keys work while the viewer has focus.
+
 ## Themes and styling
 
 Every color is a CSS variable on `.gg` (`--gg-bg`, `--gg-side`, `--gg-kw`,
@@ -67,7 +89,7 @@ Load `dist/gitglass.themes.min.css` for named presets and set
   SFC), Python, Go, Rust, Java, Kotlin, Swift, PHP, Ruby, SQL, CSS/SCSS,
   shell/PowerShell, C/C++, Dockerfile, JSON, XML/HTML/Razor, YAML/TOML/ini**
   — plain text for everything else. It's keyword/string/comment/number
-  level by design, not a full tokenizer: that's how it stays at 6 KB.
+  level by design, not a full tokenizer: that's how it stays under 8 KB.
 - Degrades honestly: offline or rate-limited, it shows why (including the
   rate-limit reset time) and links to the repo on GitHub.
 
