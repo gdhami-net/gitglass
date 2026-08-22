@@ -9,7 +9,7 @@ backend.**
 | --- | --- | --- |
 | `dist/gitglass.min.js` | 22.5 KB | **8.8 KB** |
 | `dist/gitglass.min.css` | 6.8 KB | 2.0 KB |
-| `dist/gitglass.themes.min.css` (9 presets, optional) | 3.0 KB | 0.9 KB |
+| `dist/gitglass.themes.min.css` (11 presets, optional) | 3.0 KB | 0.9 KB |
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
 extracted because it turned out to be generally useful.
@@ -73,7 +73,7 @@ your own stylesheet.
 Load `dist/gitglass.themes.min.css` for named presets and set
 `data-gitglass-theme="…"` (or `{ theme }`): **vs-dark** (default),
 **vs-light**, **github-dark**, **github-light**, **monokai**, **dracula**,
-**solarized-dark**, **solarized-light**, **nord**.
+**solarized-dark**, **solarized-light**, **nord**, and **slate-dark** / **slate-light** — the original palette the viewer was born with on gdhami.net.
 
 ## What it does
 
