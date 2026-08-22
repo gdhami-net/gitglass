@@ -22,7 +22,7 @@ for (const lang of ['cs', 'ts', 'py', 'go', 'rs', 'json', 'xml', 'yaml', 'sql', 
     for (const h of HOSTILE) {
       const out = highlight(h, lang);
       assert.ok(!/<(script|img|svg|iframe|b)/i.test(out), `${lang}: leaked markup in ${out}`);
-      for (const t of out.match(/<[^>]+>/g) || []) assert.ok(/^<\/?span( class="gg-(kw|str|cm|num)")?>$/.test(t), `${lang}: unexpected tag ${t}`);
+      for (const t of out.match(/<[^>]+>/g) || []) assert.ok(/^<\/?span( class="gg-(kw|str|cm|num|sel|prop)")?>$/.test(t), `${lang}: unexpected tag ${t}`);
     }
   });
 }
@@ -30,7 +30,7 @@ for (const lang of ['cs', 'ts', 'py', 'go', 'rs', 'json', 'xml', 'yaml', 'sql', 
 test('highlight only emits its own span classes', () => {
   const out = highlight('var x = "a<b"; // c\n1234', 'cs');
   const tags = out.match(/<[^>]+>/g) || [];
-  for (const t of tags) assert.ok(/^<\/?span( class="gg-(kw|str|cm|num)")?>$/.test(t), `unexpected tag ${t}`);
+  for (const t of tags) assert.ok(/^<\/?span( class="gg-(kw|str|cm|num|sel|prop)")?>$/.test(t), `unexpected tag ${t}`);
 });
 
 test('escapes are correct for the three dangerous characters', () => {

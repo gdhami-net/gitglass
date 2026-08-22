@@ -159,9 +159,26 @@
   var NUMBER = '(\\b\\d[\\d_]*(?:\\.\\d+)?\\b)';
   var rxCache = {};
 
+  /* CSS gets its own pass: selectors, at-rules, properties, values with units, hex colors. */
+  function highlightCss(esc) {
+    return esc.replace(
+      /(\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(@[\w-]+)|(!important)|([^{};\/]+?)(\s*\{)|([\w-]+)(\s*:)(?=[^;{}]*[;}])|(#[0-9a-fA-F]{3,8}\b|\b\d*\.?\d+(?:px|em|rem|%|vh|vw|s|ms|deg|fr)?\b)/g,
+      function (m, cm, str, at, imp, sel, brace, prop, colon, num) {
+        if (cm) return span('cm', m);
+        if (str) return span('str', m);
+        if (at) return span('kw', m);
+        if (imp) return span('kw', m);
+        if (sel !== undefined && brace !== undefined) return span('sel', sel) + brace;
+        if (prop !== undefined && colon !== undefined) return span('prop', prop) + colon;
+        if (num) return span('num', m);
+        return m;
+      });
+  }
+
   function highlight(src, lang) {
     var esc = escapeHtml(src);
     var pack = PACKS[lang] || PACKS.plain;
+    if (lang === 'css') return highlightCss(esc);
     if (pack.json) {
       return esc.replace(/("(?:[^"\\]|\\.)*")|(-?\b\d+(?:\.\d+)?\b)|\b(true|false|null)\b/g,
         function (m, s, n) { return span(s ? 'str' : n ? 'num' : 'kw', m); });
@@ -280,6 +297,7 @@
       view.tabs.appendChild(tab);
       if (path === view.active && tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
+    updateTabNav(view);
   }
 
   function markActiveRow(view) {
@@ -294,16 +312,53 @@
     view.statusR.textContent = right;
   }
 
+  var REDUCED = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function applyHighlight(view) {
     var hl = view.hl;
     [].forEach.call(view.code.querySelectorAll('.gg-line.gg-hl'), function (l) { l.classList.remove('gg-hl'); });
+    if (view.hlTimers) view.hlTimers.forEach(clearTimeout);
+    view.hlTimers = [];
     if (!hl || hl.file !== view.active) return;
-    var first = null;
+    var first = null, idx = 0;
     [].forEach.call(view.code.querySelectorAll('.gg-line'), function (l) {
       var n = parseInt(l.dataset.n, 10);
-      if (n >= hl.lines[0] && n <= hl.lines[1]) { l.classList.add('gg-hl'); if (!first) first = l; }
+      if (n >= hl.lines[0] && n <= hl.lines[1]) {
+        if (!first) first = l;
+        if (REDUCED) l.classList.add('gg-hl');
+        else view.hlTimers.push(setTimeout(function () { l.classList.add('gg-hl'); }, 120 + idx * 28));  // sweep in, line by line
+        idx++;
+      }
     });
-    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center' });
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
+  }
+
+  function copyText(text, btn) {
+    var done = function () {
+      var old = btn.getAttribute('aria-label');
+      btn.classList.add('gg-copied');
+      btn.setAttribute('aria-label', 'Copied');
+      setTimeout(function () { btn.classList.remove('gg-copied'); btn.setAttribute('aria-label', old); }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+    else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+      done();
+    }
+  }
+  var COPY_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function updateTabNav(view) {
+    if (!view.tabs || !view.navL) return;
+    var overflow = view.tabs.scrollWidth > view.tabs.clientWidth + 1;
+    view.root.classList.toggle('gg-tabs-overflow', overflow);
+    view.navL.disabled = view.tabs.scrollLeft <= 0;
+    view.navR.disabled = view.tabs.scrollLeft + view.tabs.clientWidth >= view.tabs.scrollWidth - 1;
   }
 
   function showFile(view, path) {
@@ -357,9 +412,23 @@
     nav.appendChild(next);
     panel.appendChild(info);
     panel.appendChild(nav);
+    var doneBar = el('div', 'gg-tour-done');
+    doneBar.appendChild(el('span', null, 'Tour complete'));
+    var replay = el('button', 'gg-tour-btn', 'replay ↻');
+    doneBar.appendChild(replay);
     view.main.insertBefore(panel, view.status);
-    var i = 0;
+    view.main.insertBefore(doneBar, view.status);
+    var i = 0, finished = false;
+    function animateInfo() {
+      if (REDUCED) return;
+      info.classList.remove('gg-tour-anim');
+      void info.offsetWidth;   // restart the keyframe
+      info.classList.add('gg-tour-anim');
+    }
     function go(n) {
+      finished = false;
+      panel.style.display = '';
+      doneBar.style.display = 'none';
       i = Math.max(0, Math.min(steps.length - 1, n));
       var s = steps[i];
       counter.textContent = (i + 1) + ' / ' + steps.length;
@@ -367,15 +436,26 @@
       text.textContent = s.text || '';
       prev.disabled = i === 0;
       next.textContent = i === steps.length - 1 ? 'done ✓' : 'next ›';
+      animateInfo();
       if (s.file) view.goto(s.file, s.lines || null);
     }
+    function finish() {
+      finished = true;
+      view.hl = null;
+      applyHighlight(view);
+      panel.style.display = 'none';
+      doneBar.style.display = '';
+    }
     prev.addEventListener('click', function () { go(i - 1); });
-    next.addEventListener('click', function () { if (i < steps.length - 1) go(i + 1); });
+    next.addEventListener('click', function () { if (i < steps.length - 1) go(i + 1); else finish(); });
+    replay.addEventListener('click', function () { go(0); });
     view.root.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); }
+      if (finished) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); if (i < steps.length - 1) go(i + 1); else finish(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); go(i - 1); }
     });
-    view.tour = { go: go, next: function () { go(i + 1); }, prev: function () { go(i - 1); }, steps: steps, index: function () { return i; } };
+    doneBar.style.display = 'none';
+    view.tour = { go: go, next: function () { go(i + 1); }, prev: function () { go(i - 1); }, finish: finish, steps: steps, index: function () { return i; } };
     return view.tour;
   }
 
@@ -420,12 +500,22 @@
       var head = el('div', 'gg-snip-head');
       var pathEl = el('span', 'gg-snip-path', path + (lines ? ' · L' + lines[0] + (lines[1] !== lines[0] ? '–' + lines[1] : '') : ''));
       var whole = el('button', 'gg-snip-btn', lines ? 'whole file' : '');
+      var snipCopy = el('button', 'gg-snip-btn gg-copy');
+      snipCopy.setAttribute('aria-label', 'Copy');
+      snipCopy.innerHTML = COPY_SVG + CHECK_SVG;
       var gh = el('a', 'gg-snip-btn', 'GitHub ↗');
       gh.rel = 'noopener';
       gh.target = '_blank';
       head.appendChild(pathEl);
       if (lines) head.appendChild(whole);
+      head.appendChild(snipCopy);
       head.appendChild(gh);
+      snipCopy.addEventListener('click', function () {
+        var t = view.cache[path];
+        if (t == null) return;
+        if (lines && !rootEl.classList.contains('gg-expanded')) t = t.split('\n').slice(lines[0] - 1, lines[1]).join('\n');
+        copyText(t, snipCopy);
+      });
       main.appendChild(head);
       main.appendChild(body);
       main.appendChild(status);
@@ -466,6 +556,16 @@
       filesBtn.setAttribute('aria-label', 'Toggle file list');
       filesBtn.innerHTML = FILES_SVG;
       var tabs = el('div', 'gg-tabs');
+      var navL = el('button', 'gg-tabnav gg-tabnav-l', '‹');
+      var navR = el('button', 'gg-tabnav gg-tabnav-r', '›');
+      navL.setAttribute('aria-label', 'Scroll tabs left');
+      navR.setAttribute('aria-label', 'Scroll tabs right');
+      var copyBtn = el('button', 'gg-copy');
+      copyBtn.setAttribute('aria-label', 'Copy file');
+      copyBtn.innerHTML = COPY_SVG + CHECK_SVG;
+      copyBtn.addEventListener('click', function () {
+        if (view.active && view.cache[view.active] != null) copyText(view.cache[view.active], copyBtn);
+      });
       var maxBtn = el('button', 'gg-max');
       maxBtn.setAttribute('aria-label', 'Maximize');
       maxBtn.innerHTML = MAX_SVG;
@@ -473,10 +573,22 @@
         var on = rootEl.classList.toggle('gg-fullscreen');
         maxBtn.innerHTML = on ? MIN_SVG : MAX_SVG;
         maxBtn.setAttribute('aria-label', on ? 'Restore' : 'Maximize');
+        setTimeout(function () { updateTabNav(view); }, 50);
       });
       tabbar.appendChild(filesBtn);
+      tabbar.appendChild(navL);
       tabbar.appendChild(tabs);
+      tabbar.appendChild(navR);
+      tabbar.appendChild(copyBtn);
       tabbar.appendChild(maxBtn);
+      var scrollTabs = function (dir) {
+        var step = Math.max(120, Math.round(tabs.clientWidth * 0.6)) * dir;
+        if (tabs.scrollBy) tabs.scrollBy({ left: step, behavior: REDUCED ? 'auto' : 'smooth' });
+        else tabs.scrollLeft += step;
+      };
+      navL.addEventListener('click', function () { scrollTabs(-1); });
+      navR.addEventListener('click', function () { scrollTabs(1); });
+      tabs.addEventListener('scroll', function () { updateTabNav(view); }, { passive: true });
       tabs.addEventListener('wheel', function (e) {
         if (e.deltaY && !e.deltaX && tabs.scrollWidth > tabs.clientWidth) {
           e.preventDefault();
@@ -491,6 +603,8 @@
       host.appendChild(rootEl);
       view.side = side;
       view.tabs = tabs;
+      view.navL = navL;
+      view.navR = navR;
 
       filesBtn.addEventListener('click', function () {
         if (rootEl.classList.contains('gg-side-open')) hideSide(view); else showSide(view);
@@ -511,6 +625,7 @@
           view.narrow = w < 720;
           rootEl.classList.toggle('gg-narrow', view.narrow);
           if (!view.narrow) hideSide(view);
+          updateTabNav(view);
         });
         ro.observe(rootEl);
         view.ro = ro;

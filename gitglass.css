@@ -151,3 +151,35 @@
 .gg-tour-btn:disabled { opacity: 0.4; cursor: default; }
 .gg-tour-next { border-color: var(--gg-accent); }
 .gg.gg-narrow .gg-tour { flex-direction: column; }
+
+/* ---- v1.1.1: css tokens, copy button, tab scroll arrows, tour polish ---- */
+.gg { --gg-sel: #d7ba7d; --gg-prop: #9cdcfe; }
+.gg-sel { color: var(--gg-sel); }
+.gg-prop { color: var(--gg-prop); }
+.gg-copy {
+  background: none; border: none; padding: 6px 10px; color: var(--gg-dim); cursor: pointer;
+  display: inline-flex; align-items: center; flex-shrink: 0; font: inherit;
+  opacity: 0; transition: opacity .15s ease, color .15s ease;
+}
+.gg-tabbar:hover .gg-copy, .gg-snip-head:hover .gg-copy, .gg-copy:focus-visible, .gg-copy.gg-copied { opacity: 1; }
+.gg-copy:hover { color: var(--gg-text); }
+.gg-copy svg + svg { display: none; }
+.gg-copy.gg-copied svg:first-child { display: none; }
+.gg-copy.gg-copied svg + svg { display: inline; color: #3fb950; }
+.gg-snip-head .gg-copy { padding: 2px 4px; }
+.gg-tabnav {
+  display: none; background: none; border: none; padding: 0 8px; color: var(--gg-dim); cursor: pointer;
+  font: inherit; font-size: 16px; line-height: 1; flex-shrink: 0; align-items: center;
+}
+.gg-tabnav:hover { color: var(--gg-text); }
+.gg-tabnav:disabled { opacity: 0.3; cursor: default; }
+.gg.gg-tabs-overflow .gg-tabnav { display: inline-flex; }
+.gg-line { transition: background-color .25s ease, box-shadow .25s ease; }
+.gg-tour-anim { animation: ggTourIn .35s ease both; }
+@keyframes ggTourIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.gg-tour-done {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 16px; background: var(--gg-side); border-top: 1px solid rgba(127, 127, 127, 0.25);
+  font-size: 12.5px; color: var(--gg-muted); flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) { .gg-line, .gg-tour-anim { transition: none; animation: none; } }

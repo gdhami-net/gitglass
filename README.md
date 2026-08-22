@@ -2,14 +2,14 @@
 
 Embed a VS Code-style, **read-only** GitHub repo browser in any static
 page. File tree, tabs, syntax highlighting, line numbers, fullscreen,
-themes, snippet mode, guided tours — **7.7 KB min+gzip, zero dependencies, zero build step, zero
+themes, snippet mode, guided tours, copy, tab scrolling — **8.8 KB min+gzip, zero dependencies, zero build step, zero
 backend.**
 
 | file | minified | min+gzip |
 | --- | --- | --- |
-| `dist/gitglass.min.js` | 19.0 KB | **7.7 KB** |
-| `dist/gitglass.min.css` | 5.3 KB | 1.7 KB |
-| `dist/gitglass.themes.min.css` (9 presets, optional) | 2.7 KB | 0.8 KB |
+| `dist/gitglass.min.js` | 22.5 KB | **8.8 KB** |
+| `dist/gitglass.min.css` | 6.8 KB | 2.0 KB |
+| `dist/gitglass.themes.min.css` (9 presets, optional) | 3.0 KB | 0.9 KB |
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
 extracted because it turned out to be generally useful.
@@ -81,15 +81,16 @@ Load `dist/gitglass.themes.min.css` for named presets and set
   it can never drift from the repo. Session-cached: one API call per repo.
 - Collapsible folder tree; real tabs (open/switch/close, **middle-click or
   Ctrl/Cmd+W closes**); the tab strip scrolls with edge fades when it
-  overflows; line-number gutter; status bar; maximize to fullscreen (Esc
-  restores).
+  overflows, with ‹ › scroll arrows when it does; hover the tab bar for a
+  **copy-file** button; line-number gutter; status bar; maximize to
+  fullscreen (Esc restores).
 - **Responsive**: under 720px of container width the file tree folds behind
   a ☰ button as an overlay.
 - Lightweight highlighting for **C#, TypeScript/JavaScript (incl. Vue/Svelte
   SFC), Python, Go, Rust, Java, Kotlin, Swift, PHP, Ruby, SQL, CSS/SCSS,
   shell/PowerShell, C/C++, Dockerfile, JSON, XML/HTML/Razor, YAML/TOML/ini**
   — plain text for everything else. It's keyword/string/comment/number
-  level by design, not a full tokenizer: that's how it stays under 8 KB.
+  level by design, not a full tokenizer: that's how it stays under 9 KB. CSS gets a dedicated pass (selectors, properties, values).
 - Degrades honestly: offline or rate-limited, it shows why (including the
   rate-limit reset time) and links to the repo on GitHub.
 
