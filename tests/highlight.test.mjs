@@ -21,7 +21,7 @@ for (const lang of ['cs', 'ts', 'py', 'go', 'rs', 'java', 'kt', 'swift', 'php', 
   test(`highlight(${lang}) never emits raw markup from input`, () => {
     for (const h of HOSTILE) {
       const out = highlight(h, lang);
-      assert.ok(!/<(script|img|svg|iframe|b)/i.test(out), `${lang}: leaked markup in ${out}`);
+      assert.ok(!/<(script|img|svg|iframe|b)/i.test(out), `${lang}: leaked markup in ${out}`);
       for (const t of out.match(/<[^>]+>/g) || []) assert.ok(/^<\/?span( class="gg-(kw|str|cm|num|sel|prop)")?>$/.test(t), `${lang}: unexpected tag ${t}`);
     }
   });
