@@ -3,8 +3,8 @@
 Embed a VS Code-style, **read-only** GitHub repo browser in any static
 page. File tree with file-type icons, tabs, syntax highlighting, line
 numbers, fullscreen, themes, snippet mode, guided tours, copy, tab
-scrolling, on-demand folders for huge repos — **9.9 KB min+gzip, zero
-dependencies, zero build step, zero backend.**
+scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
+(core CSS: 2.4 KB), zero dependencies, zero build step, zero backend.**
 
 | file | minified | min+gzip |
 | --- | --- | --- |
@@ -36,7 +36,8 @@ const view = GitGlass.mount(document.querySelector('#viewer'), {
   lazy: false,             // optional — list folders on demand (see "Big repos")
   expand: 'auto'           // optional — 'auto' opens every folder of a small repo; 'all' | 'none'
 });
-view.open('README.md');    // open another file
+view.open('README.md');    // open another file (once the tree has loaded)
+// on unmount:
 view.destroy();            // abort pending fetches, remove the DOM
 GitGlass.scan();           // mount any data-gitglass elements added later
 ```
@@ -88,10 +89,11 @@ collapsed with the active file's folders revealed. `data-gitglass-expand="all|no
 
 ## Themes and styling
 
-Every color is a CSS variable on `.gg` (`--gg-bg`, `--gg-side`, `--gg-kw`,
-`--gg-str`, `--gg-cm`, `--gg-num`, `--gg-accent` …), plus `--gg-mono` for the
-font stack, `--gg-font-size`, and `--gg-height`. Override them anywhere in
-your own stylesheet.
+Every theme color is a CSS variable on `.gg` (`--gg-bg`, `--gg-side`,
+`--gg-kw`, `--gg-str`, `--gg-cm`, `--gg-num`, `--gg-accent` …), plus
+`--gg-mono` for the font stack, `--gg-font-size`, and `--gg-height`.
+Override them anywhere in your own stylesheet. File-type badge colors
+are fixed per language; override the `.gg-i-*` classes to change them.
 
 Load `dist/gitglass.themes.min.css` for named presets and set
 `data-gitglass-theme="…"` (or `{ theme }`): **vs-dark** (default),
@@ -101,7 +103,8 @@ Load `dist/gitglass.themes.min.css` for named presets and set
 ## What it does
 
 - Fetches the tree and files **live from the GitHub API** at view time —
-  it can never drift from the repo. Session-cached: one API call per repo.
+  it can never drift from the repo. Session-cached: normally one API call
+  per repo, two when it falls back from `main` to `master`.
 - Collapsible folder tree with **file-type icons** (CSS badges, no icon
   font — a coloured `C#`, `TS`, `{}` … per kind, folder glyphs in
   `--gg-folder`); opening a file reveals it in the tree; real tabs
@@ -135,8 +138,9 @@ Load `dist/gitglass.themes.min.css` for named presets and set
 ## Honest limits
 
 - **Public repos only**, unauthenticated: GitHub allows 60 API requests per
-  hour per visitor IP. One repo tree costs one request; file contents come
-  from `raw.githubusercontent.com`, which is separate. On-demand mode
+  hour per IP address. One repo tree costs one request; file contents come
+  from `raw.githubusercontent.com`, outside the REST quota but with its own
+  rate limiting. On-demand mode
   spends one request per folder opened, so it is the right trade only for
   repos whose full tree would be huge.
 - Read-only by design — a viewer, not an editor.

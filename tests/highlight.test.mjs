@@ -17,7 +17,7 @@ const HOSTILE = [
   '`${"<iframe>"}`',
 ];
 
-for (const lang of ['cs', 'ts', 'py', 'go', 'rs', 'json', 'xml', 'yaml', 'sql', 'sh', 'css', 'plain']) {
+for (const lang of ['cs', 'ts', 'py', 'go', 'rs', 'java', 'kt', 'swift', 'php', 'rb', 'sql', 'css', 'sh', 'c', 'dockerfile', 'json', 'xml', 'yaml', 'plain']) {
   test(`highlight(${lang}) never emits raw markup from input`, () => {
     for (const h of HOSTILE) {
       const out = highlight(h, lang);
