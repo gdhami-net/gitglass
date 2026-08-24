@@ -106,7 +106,8 @@ Load `dist/gitglass.themes.min.css` for named presets and set
 ## What it does
 
 - Fetches the tree and files **live from the GitHub API** at view time —
-  it can never drift from the repo. Session-cached: normally one API call
+  it never drifts once fetched. Session-cached, so a repo that changes
+mid-session won't be reflected until the next session: normally one API call
   per repo, two when it falls back from `main` to `master`.
 - Collapsible folder tree with **file-type icons** (CSS badges, no icon
   font — a coloured `C#`, `TS`, `{}` … per kind, folder glyphs in
