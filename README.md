@@ -74,7 +74,8 @@ keys work while the viewer has focus.
 By default one API call fetches the whole tree, folders render their
 rows the first time they open, and a folder with hundreds of entries
 shows a hundred at a time behind a **"show more"** row. Repos past
-GitHub's single-listing limit (≈100k entries) switch automatically to
+GitHub's single-listing limit (≈100k entries or 7 MB of tree, whichever
+comes first) switch automatically to
 **on-demand mode**: the root lists first and each folder lists itself
 when opened — one API call per folder, cached for the session by its
 tree sha. Opt a known-huge repo into that mode from the start with
