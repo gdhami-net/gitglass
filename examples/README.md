@@ -11,4 +11,4 @@ destroy it on unmount". These are minimal wrappers, not apps.
 
 Load `dist/gitglass.min.js` + `dist/gitglass.min.css` from your bundler, a
 `<script>` tag, or a CDN (jsDelivr serves this repo:
-`https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.0.0/dist/gitglass.min.js`).
+`https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.2.0/dist/gitglass.min.js`).

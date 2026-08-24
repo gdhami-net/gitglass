@@ -43,7 +43,9 @@ GitGlass.scan();           // mount any data-gitglass elements added later
 ```
 
 Framework wrappers (React/Next, Vue, Angular, Svelte) are in
-[`examples/`](examples/) — each is about ten lines because the core is plain DOM.
+[`examples/`](examples/) — React, Vue and Svelte are a dozen lines each,
+Angular is a full component that fits on one screen, because the core
+is plain DOM.
 
 ## Snippets and guided tours (v1.1)
 
