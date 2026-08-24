@@ -1,4 +1,4 @@
-/* gitglass v1.0 — named theme presets. Load after gitglass.css and set
+/* gitglass v1.2 — named theme presets. Load after gitglass.css and set
    data-gitglass-theme="..." on the host (or pass { theme: '...' } to mount). */
 
 .gg[data-theme="vs-dark"] { /* same as the built-in default */ }

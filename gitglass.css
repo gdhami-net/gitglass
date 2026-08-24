@@ -1,4 +1,4 @@
-/* gitglass v1.0 — core styles. Default theme = VS Dark. Restyle via --gg-* variables on .gg,
+/* gitglass v1.2 — core styles. Default theme = VS Dark. Restyle via --gg-* variables on .gg,
    or load gitglass.themes.css and set data-gitglass-theme="github-light" (etc.) on the host. */
 .gg {
   --gg-bg: #1e1e1e;
