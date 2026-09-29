@@ -10,7 +10,7 @@ scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
 
 | file | minified | min+gzip |
 | --- | --- | --- |
-| `dist/gitglass.min.js` | 25.7 KB | **9.9 KB** |
+| `dist/gitglass.min.js` | 25.9 KB | **9.9 KB** |
 | `dist/gitglass.min.css` | 8.1 KB | 2.4 KB |
 | `dist/gitglass.themes.min.css` (11 presets, optional) | 3.8 KB | 1.1 KB |
 | `dist/themes/<name>.min.css` (one theme each, optional) | 0.4 KB | 0.3 KB |

@@ -74,13 +74,13 @@
 <script>
 (function () {
   'use strict';
-  var REPO = 'gdhami-net/gitglass';
-  var DARK = ['vs-dark', 'github-dark', 'monokai', 'dracula', 'solarized-dark', 'nord', 'slate-dark',
+  const REPO = 'gdhami-net/gitglass';
+  const DARK = ['vs-dark', 'github-dark', 'monokai', 'dracula', 'solarized-dark', 'nord', 'slate-dark',
               'midnight', 'reef', 'dune', 'forest', 'ember'];
-  var LIGHT = ['vs-light', 'github-light', 'solarized-light', 'slate-light', 'daylight', 'quiet-light'];
-  var SINGLE = ['midnight', 'reef', 'dune', 'forest', 'ember', 'daylight', 'quiet-light'];
+  const LIGHT = ['vs-light', 'github-light', 'solarized-light', 'slate-light', 'daylight', 'quiet-light'];
+  const SINGLE = ['midnight', 'reef', 'dune', 'forest', 'ember', 'daylight', 'quiet-light'];
   // the tour from demo/index.html, shown at its third step
-  var TOUR = { steps: [
+  const TOUR = { steps: [
     { file: 'gitglass.js', lines: [29, 43], title: 'One attribute, three shapes', text: 'parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target.' },
     { file: 'gitglass.js', lines: [64, 88], title: 'One API call per repo', text: 'The recursive trees endpoint returns every path at once, cached for the session.' },
     { file: 'gitglass.js', lines: [184, 205], title: 'Highlighting that fits in 10 KB',
@@ -89,11 +89,11 @@
     { file: 'gitglass.css', lines: [108, 118], title: 'Lines, not one big pre', text: 'Each line is its own element, so a tour can highlight a range.' }
   ] };
 
-  var stage = document.getElementById('stage');
-  var shot = (/[?&]shot=([\w-]+)/.exec(location.search) || [])[1] || 'viewer';
+  const stage = document.getElementById('stage');
+  const shot = (/[?&]shot=([\w-]+)/.exec(location.search) || [])[1] || 'viewer';
 
   function el(tag, cls, text) {
-    var e = document.createElement(tag);
+    const e = document.createElement(tag);
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
@@ -101,7 +101,7 @@
   // resolves once the host's file tree has rows (or gitglass has written its error into it)
   function settled(host) {
     return new Promise(function (resolve) {
-      var mo = new MutationObserver(check);
+      const mo = new MutationObserver(check);
       function check() {
         if (host.querySelector('.gg-side .gg-row, .gg-side .gg-empty')) { mo.disconnect(); resolve(); }
       }
@@ -112,9 +112,9 @@
   // once line n has rendered, scroll the code so it sits at the top (like a reader scrolling)
   function scrollToLine(host, n, gap) {
     return new Promise(function (resolve) {
-      var mo = new MutationObserver(check);
+      const mo = new MutationObserver(check);
       function check() {
-        var line = host.querySelector('.gg-line[data-n="' + n + '"]'), body = host.querySelector('.gg-body');
+        const line = host.querySelector('.gg-line[data-n="' + n + '"]'), body = host.querySelector('.gg-body');
         if (!line || !body) return;
         mo.disconnect();
         body.scrollTop += line.getBoundingClientRect().top - body.getBoundingClientRect().top - (gap || 0);
@@ -126,20 +126,20 @@
   }
   // mount the first host, wait for the tree, then mount the rest from the session cache
   function mountAll(hosts, opts) {
-    var views = [];
-    var first = hosts[0];
+    const views = [];
+    const first = hosts[0];
     views[0] = GitGlass.mount(first.host, opts(first));
     return settled(first.host).then(function () {
-      for (var i = 1; i < hosts.length; i++) views[i] = GitGlass.mount(hosts[i].host, opts(hosts[i]));
+      for (let i = 1; i < hosts.length; i++) views[i] = GitGlass.mount(hosts[i].host, opts(hosts[i]));
       return Promise.all(hosts.map(function (h) { return settled(h.host); }));
     }).then(function () { return views; });
   }
   function done() { document.documentElement.setAttribute('data-ready', ''); }
 
   if (shot === 'viewer') {
-    var host = el('div', 'fill');
+    const host = el('div', 'fill');
     stage.appendChild(host);
-    var view = GitGlass.mount(host, { repo: REPO, open: 'gitglass.js' });
+    const view = GitGlass.mount(host, { repo: REPO, open: 'gitglass.js' });
     // wait for gitglass.js itself, so reopening its tab renders from the cache
     settled(host).then(function () { return scrollToLine(host, 1); }).then(function () {
       view.open('gitglass.css');
@@ -156,14 +156,14 @@
   }
 
   if (shot === 'themes-dark' || shot === 'themes-light') {
-    var grid = el('div', 'gallery');
+    const grid = el('div', 'gallery');
     stage.appendChild(grid);
-    var cells = (shot === 'themes-dark' ? DARK : LIGHT).map(function (name) {
-      var fig = el('figure', 'cell');
-      var cap = el('figcaption', 'cap gg', name);
+    const cells = (shot === 'themes-dark' ? DARK : LIGHT).map(function (name) {
+      const fig = el('figure', 'cell');
+      const cap = el('figcaption', 'cap gg', name);
       cap.setAttribute('data-theme', name);
       cap.appendChild(el('span', null, name === 'vs-dark' ? 'default' : SINGLE.indexOf(name) === -1 ? 'in the bundle' : 'single file'));
-      var h = el('div');
+      const h = el('div');
       fig.appendChild(cap);
       fig.appendChild(h);
       grid.appendChild(fig);
@@ -175,16 +175,16 @@
   }
 
   if (shot === 'snippet') {
-    var sh = el('div', 'fill');
+    const sh = el('div', 'fill');
     stage.appendChild(sh);
     GitGlass.mount(sh, { repo: REPO + '#gitglass.js:L184-L197', theme: 'github-dark' });
     scrollToLine(sh, 184).then(done);   // snippet mode: no tree, no API call
   }
 
   if (shot === 'tour') {
-    var th = el('div', 'fill');
+    const th = el('div', 'fill');
     stage.appendChild(th);
-    var tv = GitGlass.mount(th, { repo: REPO, theme: 'nord', tour: TOUR });
+    const tv = GitGlass.mount(th, { repo: REPO, theme: 'nord', tour: TOUR });
     // step 1 opens gitglass.js; once it is in, step 3 renders from the cache
     settled(th).then(function () { return scrollToLine(th, 1); }).then(function () {
       tv.tour.go(2);
@@ -193,13 +193,13 @@
   }
 
   if (shot === 'narrow') {
-    var pair = el('div', 'pair');
+    const pair = el('div', 'pair');
     stage.appendChild(pair);
-    var hosts = ['420 px wide: the file tree folds away', 'after ☰: the tree opens over the code'].map(function (text) {
-      var fig = el('figure', 'cell');
-      var cap = el('figcaption', 'cap gg', text);
+    const hosts = ['420 px wide: the file tree folds away', 'after ☰: the tree opens over the code'].map(function (text) {
+      const fig = el('figure', 'cell');
+      const cap = el('figcaption', 'cap gg', text);
       cap.setAttribute('data-theme', 'github-light');
-      var h = el('div');
+      const h = el('div');
       fig.appendChild(cap);
       fig.appendChild(h);
       pair.appendChild(fig);

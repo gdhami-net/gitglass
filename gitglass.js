@@ -1,4 +1,4 @@
-/*! gitglass v1.2 — embed a VS Code-style, read-only GitHub repo browser in any static page.
+/*! gitglass v1.3 — embed a VS Code-style, read-only GitHub repo browser in any static page.
  *  Zero dependencies. MIT. https://github.com/gdhami-net/gitglass
  *
  *  Repo browser:   <div data-gitglass="owner/repo" data-gitglass-theme="github-dark"></div>
@@ -6,20 +6,20 @@
  *  Snippet:        <div data-gitglass="owner/repo#src/file.cs:L10-L40"></div>
  *  Guided tour:    <div data-gitglass="owner/repo"><script type="application/json">{"steps":[...]}</script></div>
  *
- *  var view = GitGlass.mount(el, { repo, branch, open, theme, lazy, expand: 'auto'|'all'|'none', path, lines: [10, 40], tour: { steps } });
+ *  const view = GitGlass.mount(el, { repo, branch, open, theme, lazy, expand: 'auto'|'all'|'none', path, lines: [10, 40], tour: { steps } });
  *  view.goto('src/file.cs', [10, 40]); view.open(path); view.destroy();
  */
 (function () {
   'use strict';
 
-  var REPO_RX = /^[\w.-]+\/[\w.-]+$/;
-  var SKIP = /\.(png|jpe?g|gif|ico|webp|avif|bmp|zip|gz|7z|rar|dll|pdb|exe|snk|woff2?|ttf|otf|eot|mp[34]|wav|pdf)$/i;
-  var MAX_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
-  var MIN_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
-  var FILES_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+  const REPO_RX = /^[\w.-]+\/[\w.-]+$/;
+  const SKIP = /\.(png|jpe?g|gif|ico|webp|avif|bmp|zip|gz|7z|rar|dll|pdb|exe|snk|woff2?|ttf|otf|eot|mp[34]|wav|pdf)$/i;
+  const MAX_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+  const MIN_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
+  const FILES_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
 
   function el(tag, cls, text) {
-    var e = document.createElement(tag);
+    const e = document.createElement(tag);
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
@@ -28,11 +28,11 @@
   /* ---------- target spec: "owner/repo", "owner/repo#path", "owner/repo#path:L10-L40" ---------- */
   function parseTarget(spec) {
     spec = (spec || '').trim();
-    var hash = spec.indexOf('#');
-    var out = { repo: hash === -1 ? spec : spec.slice(0, hash), path: null, lines: null };
+    const hash = spec.indexOf('#');
+    const out = { repo: hash === -1 ? spec : spec.slice(0, hash), path: null, lines: null };
     if (hash !== -1) {
-      var rest = spec.slice(hash + 1);
-      var lm = rest.match(/:L(\d+)(?:-L?(\d+))?$/);
+      let rest = spec.slice(hash + 1);
+      const lm = rest.match(/:L(\d+)(?:-L?(\d+))?$/);
       if (lm) {
         out.lines = [parseInt(lm[1], 10), parseInt(lm[2] || lm[1], 10)];
         rest = rest.slice(0, lm.index);
@@ -45,29 +45,29 @@
   /* ---------- github ---------- */
   function ghError(r) {
     if (r.status === 403 || r.status === 429) {
-      var remaining = r.headers.get('X-RateLimit-Remaining');
-      var reset = r.headers.get('X-RateLimit-Reset');
+      const remaining = r.headers.get('X-RateLimit-Remaining');
+      const reset = r.headers.get('X-RateLimit-Reset');
       if (remaining === '0' && reset) {
-        var at = new Date(parseInt(reset, 10) * 1000);
+        const at = new Date(parseInt(reset, 10) * 1000);
         return new Error('GitHub API rate limit reached — resets at ' + at.toLocaleTimeString());
       }
     }
     return new Error('HTTP ' + r.status);
   }
 
-  var API = 'https://api.github.com/repos/';
+  const API = 'https://api.github.com/repos/';
   function ghJson(url, signal) {
     return fetch(url, { signal: signal }).then(function (r) { if (!r.ok) throw ghError(r); return r.json(); });
   }
 
   /* Whole tree in one call (default), or just the root when `lazy` — then each folder lists itself on demand. */
   function getTree(repo, branch, signal, lazy) {
-    var key = 'gitglass:' + repo + '@' + (branch || 'auto') + (lazy ? '#lazy' : '');
+    const key = 'gitglass:' + repo + '@' + (branch || 'auto') + (lazy ? '#lazy' : '');
     try {
-      var hit = sessionStorage.getItem(key);
+      const hit = sessionStorage.getItem(key);
       if (hit) return Promise.resolve(JSON.parse(hit));
     } catch (e) { /* private mode */ }
-    var attempt = function (b) {
+    const attempt = function (b) {
       return ghJson(API + repo + '/git/trees/' + encodeURIComponent(b) + (lazy ? '' : '?recursive=1'), signal)
         .then(function (j) {
           return {
@@ -79,7 +79,7 @@
           };
         });
     };
-    var p = branch ? attempt(branch)
+    const p = branch ? attempt(branch)
       : attempt('main').catch(function (err) { if (err.name === 'AbortError') throw err; return attempt('master'); });
     return p.then(function (tree) {
       try { sessionStorage.setItem(key, JSON.stringify(tree)); } catch (e) { /* full */ }
@@ -109,8 +109,8 @@
   }
 
   /* ---------- highlighting: tiny regex packs, per language ---------- */
-  var C_KW = 'if|else|for|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|new|delete|typeof|instanceof|in|of|class|extends|implements|interface|enum|import|export|from|as|async|await|yield|static|public|private|protected|readonly|abstract|get|set|null|undefined|true|false|this|super|void|var|let|const|function';
-  var PACKS = {
+  const C_KW = 'if|else|for|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|new|delete|typeof|instanceof|in|of|class|extends|implements|interface|enum|import|export|from|as|async|await|yield|static|public|private|protected|readonly|abstract|get|set|null|undefined|true|false|this|super|void|var|let|const|function';
+  const PACKS = {
     cs:     { kw: 'using|namespace|class|record|struct|interface|enum|public|private|protected|internal|static|readonly|const|var|new|return|async|await|void|int|long|double|decimal|float|bool|string|object|char|byte|if|else|for|foreach|while|do|switch|case|default|break|continue|try|catch|finally|throw|null|true|false|this|base|is|as|in|out|ref|get|set|init|partial|sealed|override|virtual|abstract|where|typeof|nameof|with|lock|event|delegate|operator|yield', cm: 'c' },
     ts:     { kw: C_KW + '|type|namespace|declare|satisfies|keyof|infer|never|any|unknown|string|number|boolean|object|symbol|bigint', cm: 'c' },
     py:     { kw: 'def|class|return|if|elif|else|for|while|try|except|finally|raise|with|as|import|from|pass|break|continue|lambda|yield|global|nonlocal|assert|del|in|is|not|and|or|None|True|False|self|async|await|match|case', cm: 'hash' },
@@ -131,7 +131,7 @@
     yaml:   { kw: 'true|false|null|yes|no|on|off', cm: 'hash' },
     plain:  {}
   };
-  var EXT = {
+  const EXT = {
     cs: 'cs', ts: 'ts', tsx: 'ts', js: 'ts', jsx: 'ts', mjs: 'ts', cjs: 'ts', vue: 'ts', svelte: 'ts',
     py: 'py', go: 'go', rs: 'rs', java: 'java', kt: 'kt', kts: 'kt', swift: 'swift', php: 'php', rb: 'rb',
     sql: 'sql', css: 'css', scss: 'css', less: 'css',
@@ -143,9 +143,9 @@
   };
 
   function langFor(path) {
-    var base = path.split('/').pop().toLowerCase();
+    const base = path.split('/').pop().toLowerCase();
     if (base === 'dockerfile') return 'dockerfile';
-    var ext = base.indexOf('.') !== -1 ? base.split('.').pop() : base.replace(/^\./, '');
+    const ext = base.indexOf('.') !== -1 ? base.split('.').pop() : base.replace(/^\./, '');
     return EXT[ext] || 'plain';
   }
 
@@ -155,15 +155,15 @@
 
   function span(cls, m) { return '<span class="gg-' + cls + '">' + m + '</span>'; }
 
-  var COMMENT = {
+  const COMMENT = {
     c: '(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*)',
     hash: '(#[^\\n]*)',
     dash: '(--[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)',
     block: '(\\/\\*[\\s\\S]*?\\*\\/)'
   };
-  var STRING = '("(?:[^"\\\\\\n]|\\\\.)*"|\'(?:[^\'\\\\\\n]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`)';
-  var NUMBER = '(\\b\\d[\\d_]*(?:\\.\\d+)?\\b)';
-  var rxCache = {};
+  const STRING = '("(?:[^"\\\\\\n]|\\\\.)*"|\'(?:[^\'\\\\\\n]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`)';
+  const NUMBER = '(\\b\\d[\\d_]*(?:\\.\\d+)?\\b)';
+  const rxCache = {};
 
   /* CSS gets its own pass: selectors, at-rules, properties, values with units, hex colors. */
   function highlightCss(esc) {
@@ -182,8 +182,8 @@
   }
 
   function highlight(src, lang) {
-    var esc = escapeHtml(src);
-    var pack = PACKS[lang] || PACKS.plain;
+    const esc = escapeHtml(src);
+    const pack = PACKS[lang] || PACKS.plain;
     if (lang === 'css') return highlightCss(esc);
     if (pack.json) {
       return esc.replace(/("(?:[^"\\]|\\.)*")|(-?\b\d+(?:\.\d+)?\b)|\b(true|false|null)\b/g,
@@ -194,7 +194,7 @@
         function (m, c, s, lt, tag) { return c ? span('cm', m) : s ? span('str', m) : lt + span('kw', tag); });
     }
     if (!pack.kw) return esc;
-    var rx = rxCache[lang];
+    let rx = rxCache[lang];
     if (!rx) {
       rx = rxCache[lang] = new RegExp(
         COMMENT[pack.cm] + '|' + STRING + '|' + NUMBER + '|\\b(' + pack.kw + ')\\b', 'g');
@@ -206,10 +206,10 @@
 
   /* Split highlighted HTML into lines, re-balancing the (never-nested) token spans. */
   function splitLines(html) {
-    var lines = html.split('\n'), out = [], open = null;
-    var re = /<span class="([^"]+)">|<\/span>/g;
-    for (var i = 0; i < lines.length; i++) {
-      var l = lines[i], cur = open, m;
+    const lines = html.split('\n'), out = []; let open = null;
+    const re = /<span class="([^"]+)">|<\/span>/g;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i]; let cur = open, m;
       re.lastIndex = 0;
       while ((m = re.exec(l))) cur = m[1] ? m[1] : null;
       out.push((open ? '<span class="' + open + '">' : '') + l + (cur ? '</span>' : ''));
@@ -219,10 +219,10 @@
   }
 
   function renderLines(view, text, lang, from, to) {
-    var lines = splitLines(highlight(text, lang));
-    var a = Math.max(1, from || 1), b = Math.min(lines.length, to || lines.length);
-    var html = '';
-    for (var i = a; i <= b; i++) {
+    const lines = splitLines(highlight(text, lang));
+    const a = Math.max(1, from || 1), b = Math.min(lines.length, to || lines.length);
+    let html = '';
+    for (let i = a; i <= b; i++) {
       html += '<div class="gg-line" data-n="' + i + '"><span class="gg-ln">' + i + '</span><span class="gg-lt">' + (lines[i - 1] || ' ') + '</span></div>';
     }
     view.code.innerHTML = html;
@@ -230,27 +230,27 @@
   }
 
   /* ---------- tree ---------- */
-  var PAGE = 100;   // rows rendered per folder before a "show more" link
-  var ICONS = { cs: 'C#', ts: 'TS', js: 'JS', py: 'PY', go: 'GO', rs: 'RS', java: 'J', kt: 'KT', swift: 'SW', php: 'PH', rb: 'RB', sql: 'DB', css: '#', sh: '>_', c: 'C', dockerfile: 'DK', json: '{}', xml: '<>', yaml: 'CF', md: 'M↓', vue: 'V', svelte: 'S' };
-  var ICON_EXT = { html: 'xml', htm: 'xml', svg: 'xml', md: 'md', markdown: 'md', js: 'js', jsx: 'js', mjs: 'js', cjs: 'js', csproj: 'cs', sln: 'cs', props: 'cs', targets: 'cs', vue: 'vue', svelte: 'svelte' };
+  const PAGE = 100;   // rows rendered per folder before a "show more" link
+  const ICONS = { cs: 'C#', ts: 'TS', js: 'JS', py: 'PY', go: 'GO', rs: 'RS', java: 'J', kt: 'KT', swift: 'SW', php: 'PH', rb: 'RB', sql: 'DB', css: '#', sh: '>_', c: 'C', dockerfile: 'DK', json: '{}', xml: '<>', yaml: 'CF', md: 'M↓', vue: 'V', svelte: 'S' };
+  const ICON_EXT = { html: 'xml', htm: 'xml', svg: 'xml', md: 'md', markdown: 'md', js: 'js', jsx: 'js', mjs: 'js', cjs: 'js', csproj: 'cs', sln: 'cs', props: 'cs', targets: 'cs', vue: 'vue', svelte: 'svelte' };
 
   function iconFor(path) {
-    var base = path.split('/').pop().toLowerCase();
-    var ext = base.indexOf('.') !== -1 ? base.split('.').pop() : base.replace(/^\./, '');
-    var k = ICON_EXT[ext] || langFor(path);
+    const base = path.split('/').pop().toLowerCase();
+    const ext = base.indexOf('.') !== -1 ? base.split('.').pop() : base.replace(/^\./, '');
+    const k = ICON_EXT[ext] || langFor(path);
     return ICONS[k] ? k : 'file';
   }
 
   function dirNode(path, sha) { return { path: path, sha: sha || null, loaded: !sha, dirs: {}, files: [] }; }
 
   function buildHierarchy(items) {
-    var root = dirNode('', null);
+    const root = dirNode('', null);
     items.forEach(function (it) {
-      var segs = it.path.split('/'), node = root, i;
+      const segs = it.path.split('/'); let node = root, i;
       for (i = 0; i < segs.length - 1; i++) {
         node = node.dirs[segs[i]] || (node.dirs[segs[i]] = dirNode(segs.slice(0, i + 1).join('/'), null));
       }
-      var name = segs[segs.length - 1];
+      const name = segs[segs.length - 1];
       if (it.type === 'blob') node.files.push({ name: name, path: it.path });
       else if (!node.dirs[name]) node.dirs[name] = dirNode(it.path, it.sha);
     });
@@ -260,8 +260,8 @@
   /* lazy mode: list one folder (by its immutable tree sha — cached forever for the session) */
   function fetchDir(view, node) {
     if (node.loaded) return Promise.resolve(node);
-    var key = 'gitglass:t:' + node.sha;
-    var fill = function (tree) {
+    const key = 'gitglass:t:' + node.sha;
+    const fill = function (tree) {
       tree.forEach(function (t) {
         if (t.type === 'tree') node.dirs[t.path] = dirNode(node.path + '/' + t.path, t.sha);
         else if (t.type === 'blob' && !SKIP.test(t.path)) node.files.push({ name: t.path, path: node.path + '/' + t.path });
@@ -270,31 +270,31 @@
       return node;
     };
     try {
-      var hit = sessionStorage.getItem(key);
+      const hit = sessionStorage.getItem(key);
       if (hit) return Promise.resolve(fill(JSON.parse(hit)));
     } catch (e) { /* private mode */ }
     return ghJson(API + view.repo + '/git/trees/' + node.sha, view.signal).then(function (j) {
-      var slim = j.tree.map(function (t) { return { path: t.path, type: t.type, sha: t.type === 'tree' ? t.sha : undefined }; });
+      const slim = j.tree.map(function (t) { return { path: t.path, type: t.type, sha: t.type === 'tree' ? t.sha : undefined }; });
       try { sessionStorage.setItem(key, JSON.stringify(slim)); } catch (e) { /* full */ }
       return fill(slim);
     });
   }
 
   function entriesOf(node) {
-    var dirs = Object.keys(node.dirs).sort().map(function (n) { return { dir: true, name: n, node: node.dirs[n] }; });
-    var files = node.files.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+    const dirs = Object.keys(node.dirs).sort().map(function (n) { return { dir: true, name: n, node: node.dirs[n] }; });
+    const files = node.files.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
     return dirs.concat(files);
   }
 
   /* Folders first, then files; PAGE rows at a time, the rest behind a "show more" row. */
   function renderChildren(view, node, container, depth) {
-    var entries = entriesOf(node), i = 0;
-    var chunk = function () {
-      var end = Math.min(entries.length, i + PAGE);
+    const entries = entriesOf(node); let i = 0;
+    const chunk = function () {
+      const end = Math.min(entries.length, i + PAGE);
       for (; i < end; i++) renderEntry(view, entries[i], container, depth);
       if (i < entries.length) {
-        var left = entries.length - i;
-        var more = el('div', 'gg-row gg-more', 'show ' + Math.min(PAGE, left) + ' more · ' + left + ' left');
+        const left = entries.length - i;
+        const more = el('div', 'gg-row gg-more', 'show ' + Math.min(PAGE, left) + ' more · ' + left + ' left');
         more.style.paddingLeft = (12 + depth * 14 + 18) + 'px';
         more.addEventListener('click', function () { container.removeChild(more); chunk(); });
         container.appendChild(more);
@@ -305,10 +305,10 @@
 
   /* A folder's rows are built the first time it opens (and, in lazy mode, listed from GitHub right then). */
   function renderEntry(view, e, container, depth) {
-    var row = el('div', 'gg-row' + (e.dir ? '' : ' gg-file'));
+    const row = el('div', 'gg-row' + (e.dir ? '' : ' gg-file'));
     row.style.paddingLeft = (12 + depth * 14 + (e.dir ? 0 : 18)) + 'px';
     if (!e.dir) {
-      var k = iconFor(e.path);
+      const k = iconFor(e.path);
       row.appendChild(el('span', 'gg-ico gg-i-' + k, ICONS[k] || ''));
       row.appendChild(el('span', 'gg-name', e.name));
       row.dataset.path = e.path;
@@ -316,7 +316,7 @@
       container.appendChild(row);
       return;
     }
-    var node = e.node, chev = el('span', 'gg-chev', '▸'), kids = el('div'), open = false, built = null;
+    const node = e.node, chev = el('span', 'gg-chev', '▸'), kids = el('div'); let open = false, built = null;
     kids.style.display = 'none';
     row.appendChild(chev);
     row.appendChild(el('span', 'gg-ico gg-i-dir'));
@@ -332,7 +332,7 @@
       if (!open || built) return built || Promise.resolve();
       if (node.loaded) { renderChildren(view, node, kids, depth + 1); return (built = Promise.resolve()); }
       kids.textContent = '';
-      var wait = el('div', 'gg-row gg-wait', 'listing …');
+      const wait = el('div', 'gg-row gg-wait', 'listing …');
       wait.style.paddingLeft = (12 + (depth + 1) * 14 + 18) + 'px';
       kids.appendChild(wait);
       return (built = fetchDir(view, node).then(function () {
@@ -351,7 +351,7 @@
   /* Open every folder on the way to `path` and scroll the sidebar (not the page) to it. */
   function reveal(view, path) {
     if (!view.tree) return;
-    var segs = path.split('/'), node = view.tree, p = Promise.resolve();
+    const segs = path.split('/'); let node = view.tree, p = Promise.resolve();
     segs.pop();
     segs.forEach(function (seg) {
       p = p.then(function () {
@@ -362,16 +362,16 @@
     });
     return p.then(function () {
       markActiveRow(view);
-      var r = view.side.querySelector('.gg-file.gg-active'), s = view.side;
+      const r = view.side.querySelector('.gg-file.gg-active'), s = view.side;
       if (!r) return;
-      var y = r.offsetTop - s.offsetTop;
+      const y = r.offsetTop - s.offsetTop;
       if (y < s.scrollTop || y > s.scrollTop + s.clientHeight - 28) s.scrollTop = y - s.clientHeight / 2;
     }, function () { /* folder sits behind a "show more" row — nothing to reveal */ });
   }
 
   function expandAll(node) {
     Object.keys(node.dirs).forEach(function (n) {
-      var d = node.dirs[n];
+      const d = node.dirs[n];
       if (d.toggle && !d.isOpen()) d.toggle();
       if (d.loaded) expandAll(d);
     });
@@ -379,7 +379,7 @@
 
   /* ---------- tabs + editor ---------- */
   function closeTab(view, path) {
-    var i = view.openFiles.indexOf(path);
+    const i = view.openFiles.indexOf(path);
     if (i === -1) return;
     view.openFiles.splice(i, 1);
     if (view.active === path) {
@@ -395,10 +395,10 @@
     if (!view.tabs) return;
     view.tabs.textContent = '';
     view.openFiles.forEach(function (path) {
-      var tab = el('div', 'gg-tab' + (path === view.active ? ' gg-active' : ''));
+      const tab = el('div', 'gg-tab' + (path === view.active ? ' gg-active' : ''));
       tab.title = path;
       tab.appendChild(el('span', 'gg-tabname', path.split('/').pop()));
-      var x = el('span', 'gg-x', '×');
+      const x = el('span', 'gg-x', '×');
       x.setAttribute('aria-label', 'Close ' + path);
       x.addEventListener('click', function (e) { e.stopPropagation(); closeTab(view, path); });
       tab.appendChild(x);
@@ -425,17 +425,17 @@
     view.statusR.textContent = right;
   }
 
-  var REDUCED = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const REDUCED = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function applyHighlight(view) {
-    var hl = view.hl;
+    const hl = view.hl;
     [].forEach.call(view.code.querySelectorAll('.gg-line.gg-hl'), function (l) { l.classList.remove('gg-hl'); });
     if (view.hlTimers) view.hlTimers.forEach(clearTimeout);
     view.hlTimers = [];
     if (!hl || hl.file !== view.active) return;
-    var first = null, idx = 0;
+    let first = null, idx = 0;
     [].forEach.call(view.code.querySelectorAll('.gg-line'), function (l) {
-      var n = parseInt(l.dataset.n, 10);
+      const n = parseInt(l.dataset.n, 10);
       if (n >= hl.lines[0] && n <= hl.lines[1]) {
         if (!first) first = l;
         if (REDUCED) l.classList.add('gg-hl');
@@ -447,15 +447,15 @@
   }
 
   function copyText(text, btn) {
-    var done = function () {
-      var old = btn.getAttribute('aria-label');
+    const done = function () {
+      const old = btn.getAttribute('aria-label');
       btn.classList.add('gg-copied');
       btn.setAttribute('aria-label', 'Copied');
       setTimeout(function () { btn.classList.remove('gg-copied'); btn.setAttribute('aria-label', old); }, 1200);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
     else {
-      var ta = document.createElement('textarea');
+      const ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); } catch (e) { /* ignore */ }
@@ -463,20 +463,20 @@
       done();
     }
   }
-  var COPY_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-  var CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const COPY_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 
   function updateTabNav(view) {
     if (!view.tabs || !view.navL) return;
-    var overflow = view.tabs.scrollWidth > view.tabs.clientWidth + 1;
+    const overflow = view.tabs.scrollWidth > view.tabs.clientWidth + 1;
     view.root.classList.toggle('gg-tabs-overflow', overflow);
     view.navL.disabled = view.tabs.scrollLeft <= 0;
     view.navR.disabled = view.tabs.scrollLeft + view.tabs.clientWidth >= view.tabs.scrollWidth - 1;
   }
 
   function showFile(view, path) {
-    var text = view.cache[path];
-    var lang = langFor(path);
+    const text = view.cache[path];
+    const lang = langFor(path);
     renderLines(view, text, lang);
     view.body.scrollTop = 0;
     setStatus(view, path + ' · ' + view.lineCount + ' lines · ' + lang);
@@ -507,32 +507,32 @@
 
   /* ---------- guided tour ---------- */
   function buildTour(view, tour) {
-    var steps = (tour && tour.steps) || [];
+    const steps = (tour && tour.steps) || [];
     if (!steps.length) return;
-    var panel = el('div', 'gg-tour');
-    var info = el('div', 'gg-tour-info');
-    var counter = el('span', 'gg-tour-n');
-    var title = el('span', 'gg-tour-title');
-    var text = el('div', 'gg-tour-text');
-    var head = el('div', 'gg-tour-head');
+    const panel = el('div', 'gg-tour');
+    const info = el('div', 'gg-tour-info');
+    const counter = el('span', 'gg-tour-n');
+    const title = el('span', 'gg-tour-title');
+    const text = el('div', 'gg-tour-text');
+    const head = el('div', 'gg-tour-head');
     head.appendChild(counter);
     head.appendChild(title);
     info.appendChild(head);
     info.appendChild(text);
-    var nav = el('div', 'gg-tour-nav');
-    var prev = el('button', 'gg-tour-btn', '‹ prev');
-    var next = el('button', 'gg-tour-btn gg-tour-next', 'next ›');
+    const nav = el('div', 'gg-tour-nav');
+    const prev = el('button', 'gg-tour-btn', '‹ prev');
+    const next = el('button', 'gg-tour-btn gg-tour-next', 'next ›');
     nav.appendChild(prev);
     nav.appendChild(next);
     panel.appendChild(info);
     panel.appendChild(nav);
-    var doneBar = el('div', 'gg-tour-done');
+    const doneBar = el('div', 'gg-tour-done');
     doneBar.appendChild(el('span', null, 'Tour complete'));
-    var replay = el('button', 'gg-tour-btn', 'replay ↻');
+    const replay = el('button', 'gg-tour-btn', 'replay ↻');
     doneBar.appendChild(replay);
     view.main.insertBefore(panel, view.status);
     view.main.insertBefore(doneBar, view.status);
-    var i = 0, finished = false;
+    let i = 0, finished = false;
     function animateInfo() {
       if (REDUCED) return;
       info.classList.remove('gg-tour-anim');
@@ -544,7 +544,7 @@
       panel.style.display = '';
       doneBar.style.display = 'none';
       i = Math.max(0, Math.min(steps.length - 1, n));
-      var s = steps[i];
+      const s = steps[i];
       counter.textContent = (i + 1) + ' / ' + steps.length;
       title.textContent = s.title || '';
       text.textContent = s.text || '';
@@ -576,33 +576,33 @@
   /* ---------- mounting ---------- */
   function mount(host, opts) {
     opts = opts || {};
-    var target = parseTarget(opts.repo || host.getAttribute('data-gitglass') || '');
-    var repo = target.repo;
+    const target = parseTarget(opts.repo || host.getAttribute('data-gitglass') || '');
+    const repo = target.repo;
     if (!REPO_RX.test(repo)) throw new Error('gitglass: expected "owner/repo", got ' + JSON.stringify(repo));
-    var path = opts.path || target.path;
-    var lines = opts.lines || target.lines;
-    var theme = opts.theme || host.getAttribute('data-gitglass-theme');
-    var tour = opts.tour || null;
+    const path = opts.path || target.path;
+    const lines = opts.lines || target.lines;
+    const theme = opts.theme || host.getAttribute('data-gitglass-theme');
+    let tour = opts.tour || null;
     if (!tour) {
-      var js = host.querySelector('script[type="application/json"]');
+      const js = host.querySelector('script[type="application/json"]');
       if (js) { try { tour = JSON.parse(js.textContent); } catch (e) { tour = null; } }
     }
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var snippet = !!path;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const snippet = !!path;
 
-    var rootEl = el('div', 'gg' + (snippet ? ' gg-snippet' : ''));
+    const rootEl = el('div', 'gg' + (snippet ? ' gg-snippet' : ''));
     if (theme) rootEl.setAttribute('data-theme', theme);
-    var main = el('div', 'gg-main');
-    var body = el('div', 'gg-body');
-    var code = el('div', 'gg-code');
-    var status = el('div', 'gg-status');
-    var statusL = el('span');
-    var statusR = el('span');
+    const main = el('div', 'gg-main');
+    const body = el('div', 'gg-body');
+    const code = el('div', 'gg-code');
+    const status = el('div', 'gg-status');
+    const statusL = el('span');
+    const statusR = el('span');
     status.appendChild(statusL);
     status.appendChild(statusR);
     body.appendChild(code);
 
-    var view = {
+    const view = {
       repo: repo, branch: opts.branch || null, root: rootEl, host: host, main: main,
       side: null, tabs: null, body: body, code: code, status: status,
       statusL: statusL, statusR: statusR,
@@ -611,13 +611,13 @@
     };
 
     if (snippet) {
-      var head = el('div', 'gg-snip-head');
-      var pathEl = el('span', 'gg-snip-path', path + (lines ? ' · L' + lines[0] + (lines[1] !== lines[0] ? '–' + lines[1] : '') : ''));
-      var whole = el('button', 'gg-snip-btn', lines ? 'whole file' : '');
-      var snipCopy = el('button', 'gg-snip-btn gg-copy');
+      const head = el('div', 'gg-snip-head');
+      const pathEl = el('span', 'gg-snip-path', path + (lines ? ' · L' + lines[0] + (lines[1] !== lines[0] ? '–' + lines[1] : '') : ''));
+      const whole = el('button', 'gg-snip-btn', lines ? 'whole file' : '');
+      const snipCopy = el('button', 'gg-snip-btn gg-copy');
       snipCopy.setAttribute('aria-label', 'Copy');
       snipCopy.innerHTML = COPY_SVG + CHECK_SVG;
-      var gh = el('a', 'gg-snip-btn', 'GitHub ↗');
+      const gh = el('a', 'gg-snip-btn', 'GitHub ↗');
       gh.rel = 'noopener';
       gh.target = '_blank';
       head.appendChild(pathEl);
@@ -625,7 +625,7 @@
       head.appendChild(snipCopy);
       head.appendChild(gh);
       snipCopy.addEventListener('click', function () {
-        var t = view.cache[path];
+        let t = view.cache[path];
         if (t == null) return;
         if (lines && !rootEl.classList.contains('gg-expanded')) t = t.split('\n').slice(lines[0] - 1, lines[1]).join('\n');
         copyText(t, snipCopy);
@@ -636,9 +636,9 @@
       rootEl.appendChild(main);
       host.appendChild(rootEl);
       setStatus(view, 'loading …');
-      var expanded = false;
-      var draw = function () {
-        var t = view.cache[path];
+      let expanded = false;
+      const draw = function () {
+        const t = view.cache[path];
         renderLines(view, t, langFor(path), expanded ? null : lines && lines[0], expanded ? null : lines && lines[1]);
         if (lines) {
           view.hl = { file: path, lines: lines };
@@ -664,27 +664,27 @@
         draw();
       });
     } else {
-      var side = el('div', 'gg-side');
-      var tabbar = el('div', 'gg-tabbar');
-      var filesBtn = el('button', 'gg-files');
+      const side = el('div', 'gg-side');
+      const tabbar = el('div', 'gg-tabbar');
+      const filesBtn = el('button', 'gg-files');
       filesBtn.setAttribute('aria-label', 'Toggle file list');
       filesBtn.innerHTML = FILES_SVG;
-      var tabs = el('div', 'gg-tabs');
-      var navL = el('button', 'gg-tabnav gg-tabnav-l', '‹');
-      var navR = el('button', 'gg-tabnav gg-tabnav-r', '›');
+      const tabs = el('div', 'gg-tabs');
+      const navL = el('button', 'gg-tabnav gg-tabnav-l', '‹');
+      const navR = el('button', 'gg-tabnav gg-tabnav-r', '›');
       navL.setAttribute('aria-label', 'Scroll tabs left');
       navR.setAttribute('aria-label', 'Scroll tabs right');
-      var copyBtn = el('button', 'gg-copy');
+      const copyBtn = el('button', 'gg-copy');
       copyBtn.setAttribute('aria-label', 'Copy file');
       copyBtn.innerHTML = COPY_SVG + CHECK_SVG;
       copyBtn.addEventListener('click', function () {
         if (view.active && view.cache[view.active] != null) copyText(view.cache[view.active], copyBtn);
       });
-      var maxBtn = el('button', 'gg-max');
+      const maxBtn = el('button', 'gg-max');
       maxBtn.setAttribute('aria-label', 'Maximize');
       maxBtn.innerHTML = MAX_SVG;
       maxBtn.addEventListener('click', function () {
-        var on = rootEl.classList.toggle('gg-fullscreen');
+        const on = rootEl.classList.toggle('gg-fullscreen');
         maxBtn.innerHTML = on ? MIN_SVG : MAX_SVG;
         maxBtn.setAttribute('aria-label', on ? 'Restore' : 'Maximize');
         setTimeout(function () { updateTabNav(view); }, 50);
@@ -695,8 +695,8 @@
       tabbar.appendChild(navR);
       tabbar.appendChild(copyBtn);
       tabbar.appendChild(maxBtn);
-      var scrollTabs = function (dir) {
-        var step = Math.max(120, Math.round(tabs.clientWidth * 0.6)) * dir;
+      const scrollTabs = function (dir) {
+        const step = Math.max(120, Math.round(tabs.clientWidth * 0.6)) * dir;
         if (tabs.scrollBy) tabs.scrollBy({ left: step, behavior: REDUCED ? 'auto' : 'smooth' });
         else tabs.scrollLeft += step;
       };
@@ -734,8 +734,8 @@
       view.narrow = rootEl.clientWidth > 0 && rootEl.clientWidth < 720;
       rootEl.classList.toggle('gg-narrow', view.narrow);
       if (typeof ResizeObserver !== 'undefined') {
-        var ro = new ResizeObserver(function (entries) {
-          var w = entries[0].contentRect.width;
+        const ro = new ResizeObserver(function (entries) {
+          const w = entries[0].contentRect.width;
           view.narrow = w < 720;
           rootEl.classList.toggle('gg-narrow', view.narrow);
           if (!view.narrow) hideSide(view);
@@ -745,8 +745,8 @@
         view.ro = ro;
       }
 
-      var lazy = opts.lazy != null ? !!opts.lazy : host.hasAttribute('data-gitglass-lazy');
-      var expand = opts.expand || host.getAttribute('data-gitglass-expand') || 'auto';
+      let lazy = opts.lazy != null ? !!opts.lazy : host.hasAttribute('data-gitglass-lazy');
+      const expand = opts.expand || host.getAttribute('data-gitglass-expand') || 'auto';
       setStatus(view, 'loading repository …');
       getTree(repo, opts.branch, view.signal, lazy).then(function (t) {
         if (t.truncated && !lazy) { lazy = true; return getTree(repo, t.branch, view.signal, true); }   // past GitHub's limit: go folder by folder
@@ -761,17 +761,17 @@
           buildTour(view, tour).go(0);
           return;
         }
-        var blobs = t.items.filter(function (i) { return i.type === 'blob'; }).map(function (i) { return i.path; });
-        var pick = opts.open ||
+        const blobs = t.items.filter(function (i) { return i.type === 'blob'; }).map(function (i) { return i.path; });
+        const pick = opts.open ||
           blobs.filter(function (p) { return /\.(cs|ts|tsx|js|py|go|rs|java|kt|swift|php|rb)$/.test(p); })
                .sort(function (a, b) { return a.length - b.length; })[0] ||
           blobs[0];
         if (pick) openFile(view, pick);
       }).catch(function (err) {
         if (err.name === 'AbortError') return;
-        var empty = el('div', 'gg-empty');
+        const empty = el('div', 'gg-empty');
         empty.appendChild(document.createTextNode('Could not load the repository (' + err.message + '). '));
-        var a = el('a', null, 'Open it on GitHub →');
+        const a = el('a', null, 'Open it on GitHub →');
         a.href = 'https://github.com/' + repo;
         a.rel = 'noopener';
         empty.appendChild(a);
@@ -797,10 +797,10 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' && e.key !== 'Esc') return;
-    var m = document.querySelector('.gg.gg-fullscreen');
+    const m = document.querySelector('.gg.gg-fullscreen');
     if (!m) return;
     m.classList.remove('gg-fullscreen');
-    var b = m.querySelector('.gg-max');
+    const b = m.querySelector('.gg-max');
     if (b) { b.innerHTML = MAX_SVG; b.setAttribute('aria-label', 'Maximize'); }
   });
 
@@ -814,5 +814,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { scan(); });
   else scan();
 
-  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, iconFor: iconFor, parseTarget: parseTarget, splitLines: splitLines, version: '1.2.0' };
+  window.GitGlass = { mount: mount, scan: scan, highlight: highlight, langFor: langFor, iconFor: iconFor, parseTarget: parseTarget, splitLines: splitLines, version: '1.3.0' };
 })();
