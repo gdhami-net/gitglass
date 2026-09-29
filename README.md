@@ -6,6 +6,9 @@ numbers, fullscreen, themes, snippet mode, guided tours, copy, tab
 scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
 (core CSS: 2.4 KB), zero dependencies, zero build step, zero backend.**
 
+**[Live demo →](https://gdhami.net/projects/gitglass)** load any public
+repo, try all 18 themes and copy the code for your page.
+
 ![gitglass showing its own repo: the file tree, three tabs and highlighted JavaScript, in the default vs-dark theme](docs/img/viewer.png)
 
 | file | minified | min+gzip |
@@ -20,10 +23,12 @@ extracted because it turned out to be generally useful.
 
 ## Demo
 
-The demo is [`demo/index.html`](demo/index.html): load any public repo,
-try all 18 themes and copy the exact code for your choice, plus snippet
-mode, a guided tour and a narrow layout. Serve the repo root with any
-static server and open `/demo/`, for example:
+The live demo is on [gdhami.net/projects/gitglass](https://gdhami.net/projects/gitglass).
+
+A standalone copy ships in this repo as [`demo/index.html`](demo/index.html):
+load any public repo, try all 18 themes and copy the exact code for your
+choice, plus snippet mode, a guided tour and a narrow layout. Serve the
+repo root with any static server and open `/demo/`, for example:
 
 ```
 python -m http.server 8000     # then open http://localhost:8000/demo/
