@@ -1,0 +1,26 @@
+/* gitglass theme: Forest (dark), green on dark green, with lime and teal beside it.
+   Optional: load this file after gitglass.css and set data-gitglass-theme="forest" (or
+   { theme: 'forest' }). First made for gdhami.net; this file is a snapshot of that
+   site's palette of the same name on 2026-09-29 and does not follow later changes. */
+
+.gg[data-theme="forest"] {
+  --gg-bg: #061a0b;
+  --gg-side: #0c2613;
+  --gg-text: #ebf7ee;
+  --gg-code: #daebdf;
+  --gg-muted: #90ad98;
+  --gg-dim: #698570;
+  --gg-faint: #516b58;
+  --gg-gutter: #3b5241;
+  --gg-hover: rgba(190, 242, 109, 0.07);
+  --gg-active: rgba(54, 217, 125, 0.12);
+  --gg-hl: rgba(54, 217, 125, 0.12);
+  --gg-accent: #36d97d;
+  --gg-kw: #73e0fa;
+  --gg-str: #cffa8c;
+  --gg-cm: #76947e;
+  --gg-num: #7dfafa;
+  --gg-sel: #74f5ac;
+  --gg-prop: #aaf2bd;
+  --gg-folder: #65cdca;
+}

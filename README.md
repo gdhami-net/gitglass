@@ -11,6 +11,7 @@ scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
 | `dist/gitglass.min.js` | 25.7 KB | **9.9 KB** |
 | `dist/gitglass.min.css` | 8.1 KB | 2.4 KB |
 | `dist/gitglass.themes.min.css` (11 presets, optional) | 3.8 KB | 1.1 KB |
+| `dist/themes/<name>.min.css` (one theme each, optional) | 0.4 KB | 0.3 KB |
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
 extracted because it turned out to be generally useful.
@@ -18,8 +19,8 @@ extracted because it turned out to be generally useful.
 ## Use it
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.2.0/dist/gitglass.min.css">
-<script src="https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.2.0/dist/gitglass.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.3.0/dist/gitglass.min.css">
+<script src="https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.3.0/dist/gitglass.min.js"></script>
 
 <div data-gitglass="dotnet/runtime"></div>
 ```
@@ -98,10 +99,33 @@ Every theme color is a CSS variable on `.gg` (`--gg-bg`, `--gg-side`,
 Override them anywhere in your own stylesheet. File-type badge colors
 are fixed per language; override the `.gg-i-*` classes to change them.
 
-Load `dist/gitglass.themes.min.css` for named presets and set
-`data-gitglass-theme="…"` (or `{ theme }`): **vs-dark** (default),
-**vs-light**, **github-dark**, **github-light**, **monokai**, **dracula**,
-**solarized-dark**, **solarized-light**, **nord**, and **slate-dark** / **slate-light** — the original palette the viewer was born with on gdhami.net.
+Named themes are optional and come two ways. Neither adds a byte to
+the core files.
+
+- **The bundle**, `dist/gitglass.themes.min.css` (1.1 KB gzipped), holds
+  eleven presets: **vs-dark** (default), **vs-light**, **github-dark**,
+  **github-light**, **monokai**, **dracula**, **solarized-dark**,
+  **solarized-light**, **nord**, and **slate-dark** / **slate-light** — the
+  original palette the viewer was born with on gdhami.net.
+- **One file per theme**, `dist/themes/<name>.min.css` (0.3 KB gzipped
+  at most), for every preset above and for seven themes that ship
+  only this way: **midnight**, **reef**, **dune**, **forest** and
+  **ember** (dark), **daylight** and **quiet-light** (light). Load only the
+  ones you use. midnight has slate-dark's colours with its own folder
+  colour; daylight is slate-light with darker strings, numbers and
+  comments; quiet-light is VS Code's Quiet Light with its syntax colours
+  darkened slightly for contrast.
+
+Then set `data-gitglass-theme="…"` (or `{ theme }`):
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gdhami-net/gitglass@1.3.0/dist/themes/reef.min.css">
+<div data-gitglass="dotnet/runtime" data-gitglass-theme="reef"></div>
+```
+
+A new theme goes in `themes/<name>.css` as one `.gg[data-theme="<name>"]`
+rule; the build writes it to `dist/themes/` and leaves the core files and
+the bundle alone.
 
 ## What it does
 
@@ -156,7 +180,7 @@ mid-session won't be reflected until the next session: normally one API call
 ```
 npm install      # esbuild, dev only
 npm run build    # dist/ + size table
-npm test         # hostile-input and detection tests
+npm test         # hostile-input, detection and theme tests
 ```
 
 MIT licensed.

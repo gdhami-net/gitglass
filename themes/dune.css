@@ -1,0 +1,27 @@
+/* gitglass theme: Dune (dark), teal on a warm sand-brown ground, with sand and
+   terracotta accents. Optional: load this file after gitglass.css and set
+   data-gitglass-theme="dune" (or { theme: 'dune' }). First made for gdhami.net; this
+   file is a snapshot of that site's palette of the same name on 2026-09-29 and does not
+   follow later changes. */
+
+.gg[data-theme="dune"] {
+  --gg-bg: #1a130f;
+  --gg-side: #261e18;
+  --gg-text: #f7f0eb;
+  --gg-code: #ebe1da;
+  --gg-muted: #ad9c90;
+  --gg-dim: #857469;
+  --gg-faint: #6b5c51;
+  --gg-gutter: #52443b;
+  --gg-hover: rgba(242, 177, 133, 0.07);
+  --gg-active: rgba(59, 209, 184, 0.12);
+  --gg-hl: rgba(59, 209, 184, 0.12);
+  --gg-accent: #3bd1b8;
+  --gg-kw: #fa9958;
+  --gg-str: #fac4a0;
+  --gg-cm: #948276;
+  --gg-num: #7db8fa;
+  --gg-sel: #79f5e0;
+  --gg-prop: #f2c7aa;
+  --gg-folder: #6997cb;
+}

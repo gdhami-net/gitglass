@@ -1,0 +1,28 @@
+/* gitglass theme: Midnight (dark), sky-blue accents on a deep navy ground. Same colours
+   as the slate-dark preset in gitglass.themes.css, plus its own folder colour.
+   Optional: load this file after gitglass.css and set data-gitglass-theme="midnight"
+   (or { theme: 'midnight' }). First made for gdhami.net; this file is a snapshot of
+   that site's palette of the same name on 2026-09-29 and does not follow later changes.
+   */
+
+.gg[data-theme="midnight"] {
+  --gg-bg: #0b1120;
+  --gg-side: #0d1526;
+  --gg-text: #e2e8f0;
+  --gg-code: #cbd5e1;
+  --gg-muted: #94a3b8;
+  --gg-dim: #64748b;
+  --gg-faint: #475569;
+  --gg-gutter: #334155;
+  --gg-hover: rgba(148, 163, 184, 0.06);
+  --gg-active: rgba(56, 189, 248, 0.1);
+  --gg-hl: rgba(56, 189, 248, 0.1);
+  --gg-accent: #38bdf8;
+  --gg-kw: #38bdf8;
+  --gg-str: #22c55e;
+  --gg-cm: #64748b;
+  --gg-num: #fbbf24;
+  --gg-sel: #7dd3fc;
+  --gg-prop: #93c5fd;
+  --gg-folder: #cb9c23;
+}

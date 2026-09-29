@@ -1,0 +1,27 @@
+/* gitglass theme: Reef (dark), mint on a deep sea-green ground, with gold and coral
+   accents. Optional: load this file after gitglass.css and set
+   data-gitglass-theme="reef" (or { theme: 'reef' }). First made for gdhami.net; this
+   file is a snapshot of that site's palette of the same name on 2026-09-29 and does not
+   follow later changes. */
+
+.gg[data-theme="reef"] {
+  --gg-bg: #061a14;
+  --gg-side: #0c261e;
+  --gg-text: #ebf7f4;
+  --gg-code: #daebe6;
+  --gg-muted: #90ada4;
+  --gg-dim: #69857c;
+  --gg-faint: #516b63;
+  --gg-gutter: #3b524b;
+  --gg-hover: rgba(250, 192, 75, 0.07);
+  --gg-active: rgba(34, 224, 167, 0.12);
+  --gg-hl: rgba(34, 224, 167, 0.12);
+  --gg-accent: #22e0a7;
+  --gg-kw: #fa9f6e;
+  --gg-str: #facb6e;
+  --gg-cm: #76948b;
+  --gg-num: #7da3fa;
+  --gg-sel: #63f5c9;
+  --gg-prop: #aaf2dc;
+  --gg-folder: #6588cc;
+}

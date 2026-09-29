@@ -1,0 +1,27 @@
+/* gitglass theme: Ember (dark), orange accents on a near-black warm ground, with lime
+   strings. Optional: load this file after gitglass.css and set
+   data-gitglass-theme="ember" (or { theme: 'ember' }). First made for gdhami.net; this
+   file is a snapshot of that site's palette of the same name on 2026-09-29 and does not
+   follow later changes. */
+
+.gg[data-theme="ember"] {
+  --gg-bg: #0f0b08;
+  --gg-side: #19130f;
+  --gg-text: #fdf1e6;
+  --gg-code: #f3e4d6;
+  --gg-muted: #bfaa96;
+  --gg-dim: #8f7a67;
+  --gg-faint: #66564a;
+  --gg-gutter: #4a3d33;
+  --gg-hover: rgba(251, 191, 36, 0.06);
+  --gg-active: rgba(251, 146, 60, 0.14);
+  --gg-hl: rgba(251, 146, 60, 0.14);
+  --gg-accent: #fb923c;
+  --gg-kw: #fb923c;
+  --gg-str: #a3e635;
+  --gg-cm: #8f7a67;
+  --gg-num: #fda4af;
+  --gg-sel: #fcd34d;
+  --gg-prop: #fdba74;
+  --gg-folder: #cd858e;
+}

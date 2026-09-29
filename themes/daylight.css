@@ -1,0 +1,28 @@
+/* gitglass theme: Daylight (light), deep blue accents on a cool blue-grey page. The
+   slate-light preset with its string, number and comment colours darkened for contrast.
+   Optional: load this file after gitglass.css and set data-gitglass-theme="daylight"
+   (or { theme: 'daylight' }). First made for gdhami.net; this file is a snapshot of
+   that site's palette of the same name on 2026-09-29 and does not follow later changes.
+   */
+
+.gg[data-theme="daylight"] {
+  --gg-bg: #f4f7fb;
+  --gg-side: #e7edf5;
+  --gg-text: #0f172a;
+  --gg-code: #1e293b;
+  --gg-muted: #5b6b80;
+  --gg-dim: #64748b;
+  --gg-faint: #8494a7;
+  --gg-gutter: #a5b3c4;
+  --gg-hover: rgba(15, 23, 42, 0.05);
+  --gg-active: rgba(3, 105, 161, 0.1);
+  --gg-hl: rgba(3, 105, 161, 0.1);
+  --gg-accent: #0369a1;
+  --gg-kw: #0369a1;
+  --gg-str: #14773a;
+  --gg-cm: #76869a;
+  --gg-num: #a84d07;
+  --gg-sel: #0e7490;
+  --gg-prop: #1d4ed8;
+  --gg-folder: #b76f38;
+}

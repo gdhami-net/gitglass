@@ -1,0 +1,4 @@
+# Every text file is stored and checked out with LF endings. Without this,
+# core.autocrlf=true on Windows hands out CRLF copies of some files, and the
+# build then reports a source size that differs from every other machine's.
+* text=auto eol=lf

@@ -30,6 +30,12 @@
       <option value="monokai">monokai</option><option value="dracula">dracula</option>
       <option value="solarized-dark">solarized-dark</option><option value="solarized-light">solarized-light</option>
       <option value="nord">nord</option><option value="slate-dark">slate-dark (the original)</option><option value="slate-light">slate-light</option>
+      <optgroup label="single files, loaded when picked">
+        <option value="midnight" data-file>midnight</option><option value="reef" data-file>reef</option>
+        <option value="dune" data-file>dune</option><option value="forest" data-file>forest</option>
+        <option value="ember" data-file>ember</option><option value="daylight" data-file>daylight</option>
+        <option value="quiet-light" data-file>quiet-light</option>
+      </optgroup>
     </select>
     <label for="repo">repo</label>
     <input id="repo" value="gdhami-net/gitglass" style="width: 260px;">
@@ -67,7 +73,17 @@
 <script src="../dist/gitglass.min.js"></script>
 <script>
   var view = null;
+  // the bundle is on the page; a single-file theme is fetched the first time it is picked
+  function needTheme(select) {
+    var opt = select.options[select.selectedIndex];
+    if (!opt.hasAttribute('data-file') || document.getElementById('theme-' + opt.value)) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet'; link.id = 'theme-' + opt.value;
+    link.href = '../dist/themes/' + opt.value + '.min.css';
+    document.head.appendChild(link);
+  }
   function load() {
+    needTheme(document.getElementById('theme'));
     if (view) view.destroy();
     view = GitGlass.mount(document.getElementById('host'), {
       repo: document.getElementById('repo').value.trim(),
