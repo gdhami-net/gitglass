@@ -636,6 +636,7 @@
       main.appendChild(body);
       main.appendChild(status);
       rootEl.appendChild(main);
+      host.appendChild(rootEl);
       setStatus(view, 'loading …');
       let expanded = false;
       const draw = function () {
@@ -715,7 +716,6 @@
       main.appendChild(status);
       rootEl.appendChild(side);
       rootEl.appendChild(main);
-      host.appendChild(rootEl);
       view.side = side;
       view.tabs = tabs;
       view.navL = navL;
