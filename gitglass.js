@@ -394,6 +394,7 @@
   function renderTabs(view) {
     if (!view.tabs) return;
     view.tabs.textContent = '';
+    let act = null;
     view.openFiles.forEach(function (path) {
       const tab = el('div', 'gg-tab' + (path === view.active ? ' gg-active' : ''));
       tab.title = path;
@@ -408,8 +409,9 @@
       });
       tab.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
       view.tabs.appendChild(tab);
-      if (path === view.active && tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (path === view.active) act = tab;
     });
+    if (act) { const t = view.tabs, l = act.offsetLeft - t.offsetLeft; t.scrollLeft = Math.min(Math.max(t.scrollLeft, l + act.offsetWidth - t.clientWidth), l); }
     updateTabNav(view);
   }
 
@@ -443,7 +445,7 @@
         idx++;
       }
     });
-    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
+    if (first) view.body.scrollTo({ top: first.offsetTop - view.body.clientHeight / 2, behavior: REDUCED ? 'auto' : 'smooth' });
   }
 
   function copyText(text, btn) {
@@ -634,7 +636,6 @@
       main.appendChild(body);
       main.appendChild(status);
       rootEl.appendChild(main);
-      host.appendChild(rootEl);
       setStatus(view, 'loading …');
       let expanded = false;
       const draw = function () {
@@ -731,8 +732,9 @@
       });
       rootEl.tabIndex = 0;
 
-      view.narrow = rootEl.clientWidth > 0 && rootEl.clientWidth < 720;
+      view.narrow = host.clientWidth > 0 && host.clientWidth < 720;
       rootEl.classList.toggle('gg-narrow', view.narrow);
+      host.appendChild(rootEl);
       if (typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver(function (entries) {
           const w = entries[0].contentRect.width;
@@ -776,6 +778,7 @@
         a.rel = 'noopener';
         empty.appendChild(a);
         side.appendChild(empty);
+        showSide(view);
         setStatus(view, '');
       });
     }
@@ -807,7 +810,7 @@
   function scan(root) {
     [].forEach.call((root || document).querySelectorAll('[data-gitglass]:not([data-gg-mounted])'), function (host) {
       host.setAttribute('data-gg-mounted', '');
-      try { mount(host); } catch (err) { if (typeof console !== 'undefined' && console.warn) console.warn(err.message); }
+      try { mount(host); } catch (err) { console.warn(err.message); }
     });
   }
 

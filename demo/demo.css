@@ -212,11 +212,6 @@ kbd {
 .viewer-main .gg { --gg-height: var(--viewer-h); }
 .viewer-tour { min-height: 460px; }
 .viewer-narrow { width: 420px; max-width: 100%; min-height: 460px; }
-/* The fix for the narrow viewer that stuck out to the left. In narrow mode gitglass
-   moves the closed file tree out of the viewer with transform: translateX(-100%),
-   but .gg does not clip its overflow, so the "hidden" tree was painted (and could be
-   clicked) beside the viewer. Clipping here keeps it inside until ☰ opens it. */
-.gg.gg-narrow { overflow: hidden; overflow: clip; }
 .viewer-wait { display: flex; align-items: center; justify-content: center; min-height: inherit; color: var(--faint); font-size: 14px; }
 
 /* copy-paste code */

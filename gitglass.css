@@ -94,8 +94,8 @@
 .gg-str { color: var(--gg-str); }
 .gg-cm { color: var(--gg-cm); font-style: italic; }
 .gg-num { color: var(--gg-num); }
-
 /* narrow (< 720px container): sidebar becomes an overlay behind the files button */
+.gg.gg-narrow { overflow: hidden; }   /* the folded sidebar stays inside the viewer */
 .gg.gg-narrow .gg-files { display: inline-flex; }
 .gg.gg-narrow .gg-side {
   position: absolute; top: 0; bottom: 0; left: 0; width: min(260px, 80%);
