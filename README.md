@@ -6,6 +6,8 @@ numbers, fullscreen, themes, snippet mode, guided tours, copy, tab
 scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
 (core CSS: 2.4 KB), zero dependencies, zero build step, zero backend.**
 
+![gitglass showing its own repo: the file tree, three tabs and highlighted JavaScript, in the default vs-dark theme](docs/img/viewer.png)
+
 | file | minified | min+gzip |
 | --- | --- | --- |
 | `dist/gitglass.min.js` | 25.7 KB | **9.9 KB** |
@@ -15,6 +17,20 @@ scrolling, on-demand folders for huge repos — **9.9 KB of JS min+gzip
 
 Born as the "browse the code" viewer on [gdhami.net](https://gdhami.net);
 extracted because it turned out to be generally useful.
+
+## Demo
+
+The demo is [`demo/index.html`](demo/index.html): load any public repo,
+try all 18 themes and copy the exact code for your choice, plus snippet
+mode, a guided tour and a narrow layout. Serve the repo root with any
+static server and open `/demo/`, for example:
+
+```
+python -m http.server 8000     # then open http://localhost:8000/demo/
+```
+
+Opening the file straight from disk also worked in Edge when tested; if
+your browser blocks it, use a server.
 
 ## Use it
 
@@ -70,6 +86,10 @@ snippet, `{ repo, tour: { steps } }` for a tour; `view.goto(file, [a, b])`
 highlights any range, `view.tour.next()/prev()/go(i)` drive a tour. Arrow
 keys work while the viewer has focus.
 
+![Snippet mode: lines 184 to 197 of gitglass.js with their real line numbers, a "whole file" button and a link to GitHub, in the github-dark theme](docs/img/snippet.png)
+
+![A guided tour at step 3 of 5: the highlighted lines 184 to 205 and the step's title and text under the code, in the nord theme](docs/img/tour.png)
+
 ## Big repos (v1.2)
 
 By default one API call fetches the whole tree, folders render their
@@ -116,6 +136,12 @@ the core files.
   comments; quiet-light is VS Code's Quiet Light with its syntax colours
   darkened slightly for contrast.
 
+All eighteen, dark and then light (the [demo](#demo) switches between them live):
+
+![The twelve dark themes side by side, each showing the same lines of gitglass.js: vs-dark, github-dark, monokai, dracula, solarized-dark, nord, slate-dark, midnight, reef, dune, forest and ember](docs/img/themes-dark.png)
+
+![The six light themes side by side, each showing the same lines of gitglass.js: vs-light, github-light, solarized-light, slate-light, daylight and quiet-light](docs/img/themes-light.png)
+
 Then set `data-gitglass-theme="…"` (or `{ theme }`):
 
 ```html
@@ -150,6 +176,8 @@ mid-session won't be reflected until the next session: normally one API call
 - Degrades honestly: offline or rate-limited, it shows why (including the
   rate-limit reset time) and links to the repo on GitHub.
 
+![Two 420 px wide viewers in the github-light theme: on the left the file tree is folded away, on the right the ☰ button has opened it over the code](docs/img/narrow.png)
+
 ## Security notes
 
 - All file content is HTML-escaped before highlighting; the highlighter only
@@ -182,5 +210,9 @@ npm install      # esbuild, dev only
 npm run build    # dist/ + size table
 npm test         # hostile-input, detection and theme tests
 ```
+
+The screenshots in this README come from
+[`docs/screenshots.html`](docs/screenshots.html); its header lists the
+headless Edge commands that render them again into `docs/img/`.
 
 MIT licensed.

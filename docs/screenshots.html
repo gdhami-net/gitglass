@@ -1,0 +1,216 @@
+<!doctype html>
+<!--
+  Source of the README screenshots in docs/img/. Each ?shot= below renders one image at
+  exactly the window size in its command, using gitglass from ../dist/ and live content
+  from github.com/gdhami-net/gitglass. A shot costs at most one GitHub API call: the first
+  viewer loads the repo tree, and the others mount after it and read the session cache.
+
+  To re-render (Windows PowerShell, from the repo root; any Chromium takes the same flags):
+
+    python -m http.server 8340 --bind 127.0.0.1        # in a second terminal
+    $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    $page = "http://127.0.0.1:8340/docs/screenshots.html?shot="
+    $run  = "--headless=new", "--disable-gpu", "--hide-scrollbars", "--virtual-time-budget=15000", "--force-prefers-reduced-motion"
+    $run += "--incognito", "--default-background-color=00000000", "--user-data-dir=$env:TEMP\gitglass-shots"
+    function shot($name, $size) { Start-Process $edge -Wait -ArgumentList ($run + "--window-size=$size", "--screenshot=$PWD\docs\img\$name.png", "$page$name") }
+    shot viewer       "880,520"
+    shot themes-dark  "880,1004"
+    shot themes-light "880,508"
+    shot snippet      "880,392"
+    shot tour         "880,500"
+    shot narrow       "880,480"
+
+  --user-data-dir keeps the run apart from an Edge that is already open (without it the
+  screenshot is silently not written), --incognito keeps it from reusing a cached copy of
+  an older page, and Start-Process -Wait lets each run end before the next one starts on
+  the same profile. Reduced motion makes gitglass jump straight to a tour's lines (a
+  smooth scroll does not run in headless mode). The transparent background lets the gaps
+  between the cards take the colour of the page the README is shown on. Open every image
+  afterwards: a viewer that says "Could not load" means the API limit was reached (60
+  calls per hour per IP address); wait for the reset and run that shot again.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gitglass screenshots</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../dist/gitglass.min.css">
+<link rel="stylesheet" href="../dist/gitglass.themes.min.css">
+<link rel="stylesheet" href="../dist/themes/midnight.min.css">
+<link rel="stylesheet" href="../dist/themes/reef.min.css">
+<link rel="stylesheet" href="../dist/themes/dune.min.css">
+<link rel="stylesheet" href="../dist/themes/forest.min.css">
+<link rel="stylesheet" href="../dist/themes/ember.min.css">
+<link rel="stylesheet" href="../dist/themes/daylight.min.css">
+<link rel="stylesheet" href="../dist/themes/quiet-light.min.css">
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  /* same clip as demo/demo.css: keeps a narrow viewer's folded file tree inside it */
+  .gg.gg-narrow { overflow: hidden; overflow: clip; }
+
+  .fill .gg { --gg-height: 100vh; }
+
+  .gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 12px; }
+  .cell { margin: 0; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.4); }
+  .cell .gg { --gg-height: 204px; --gg-font-size: 12px; }   /* seven whole lines of code */
+  /* the caption is a .gg element too, so it wears the theme's own colours */
+  .cap.gg {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    height: auto; padding: 7px 12px; background: var(--gg-side); color: var(--gg-text);
+    font: 600 13px/16px system-ui, -apple-system, 'Segoe UI', sans-serif;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+  }
+  .cap span { font-weight: 400; font-size: 11.5px; color: var(--gg-dim); }
+
+  .pair { display: grid; grid-template-columns: 420px 420px; gap: 16px; padding: 12px; }
+  .pair .cell > div > .gg { --gg-height: 425px; }
+</style>
+</head>
+<body>
+<main id="stage"></main>
+<script src="../dist/gitglass.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var REPO = 'gdhami-net/gitglass';
+  var DARK = ['vs-dark', 'github-dark', 'monokai', 'dracula', 'solarized-dark', 'nord', 'slate-dark',
+              'midnight', 'reef', 'dune', 'forest', 'ember'];
+  var LIGHT = ['vs-light', 'github-light', 'solarized-light', 'slate-light', 'daylight', 'quiet-light'];
+  var SINGLE = ['midnight', 'reef', 'dune', 'forest', 'ember', 'daylight', 'quiet-light'];
+  // the tour from demo/index.html, shown at its third step
+  var TOUR = { steps: [
+    { file: 'gitglass.js', lines: [29, 43], title: 'One attribute, three shapes', text: 'parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target.' },
+    { file: 'gitglass.js', lines: [64, 88], title: 'One API call per repo', text: 'The recursive trees endpoint returns every path at once, cached for the session.' },
+    { file: 'gitglass.js', lines: [184, 205], title: 'Highlighting that fits in 10 KB',
+      text: 'Escape first, then a single regex pass per language for comments, strings, numbers, and keywords. Not a tokenizer — that is the trade for the size.' },
+    { file: 'gitglass.js', lines: [208, 219], title: 'Spans that survive line breaks', text: 'splitLines closes and reopens the token span at every break.' },
+    { file: 'gitglass.css', lines: [108, 118], title: 'Lines, not one big pre', text: 'Each line is its own element, so a tour can highlight a range.' }
+  ] };
+
+  var stage = document.getElementById('stage');
+  var shot = (/[?&]shot=([\w-]+)/.exec(location.search) || [])[1] || 'viewer';
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  // resolves once the host's file tree has rows (or gitglass has written its error into it)
+  function settled(host) {
+    return new Promise(function (resolve) {
+      var mo = new MutationObserver(check);
+      function check() {
+        if (host.querySelector('.gg-side .gg-row, .gg-side .gg-empty')) { mo.disconnect(); resolve(); }
+      }
+      mo.observe(host, { childList: true, subtree: true });
+      check();
+    });
+  }
+  // once line n has rendered, scroll the code so it sits at the top (like a reader scrolling)
+  function scrollToLine(host, n, gap) {
+    return new Promise(function (resolve) {
+      var mo = new MutationObserver(check);
+      function check() {
+        var line = host.querySelector('.gg-line[data-n="' + n + '"]'), body = host.querySelector('.gg-body');
+        if (!line || !body) return;
+        mo.disconnect();
+        body.scrollTop += line.getBoundingClientRect().top - body.getBoundingClientRect().top - (gap || 0);
+        resolve();
+      }
+      mo.observe(host, { childList: true, subtree: true });
+      check();
+    });
+  }
+  // mount the first host, wait for the tree, then mount the rest from the session cache
+  function mountAll(hosts, opts) {
+    var views = [];
+    var first = hosts[0];
+    views[0] = GitGlass.mount(first.host, opts(first));
+    return settled(first.host).then(function () {
+      for (var i = 1; i < hosts.length; i++) views[i] = GitGlass.mount(hosts[i].host, opts(hosts[i]));
+      return Promise.all(hosts.map(function (h) { return settled(h.host); }));
+    }).then(function () { return views; });
+  }
+  function done() { document.documentElement.setAttribute('data-ready', ''); }
+
+  if (shot === 'viewer') {
+    var host = el('div', 'fill');
+    stage.appendChild(host);
+    var view = GitGlass.mount(host, { repo: REPO, open: 'gitglass.js' });
+    // wait for gitglass.js itself, so reopening its tab renders from the cache
+    settled(host).then(function () { return scrollToLine(host, 1); }).then(function () {
+      view.open('gitglass.css');
+      view.open('README.md');
+      view.open('gitglass.js');
+      return scrollToLine(host, 260);
+    }).then(function () {
+      // fold examples/ so the whole tree fits the image and no row is cut in half
+      [].forEach.call(host.querySelectorAll('.gg-side .gg-row'), function (row) {
+        if (row.textContent.indexOf('examples') !== -1 && row.classList.contains('gg-open')) row.click();
+      });
+      done();
+    });
+  }
+
+  if (shot === 'themes-dark' || shot === 'themes-light') {
+    var grid = el('div', 'gallery');
+    stage.appendChild(grid);
+    var cells = (shot === 'themes-dark' ? DARK : LIGHT).map(function (name) {
+      var fig = el('figure', 'cell');
+      var cap = el('figcaption', 'cap gg', name);
+      cap.setAttribute('data-theme', name);
+      cap.appendChild(el('span', null, name === 'vs-dark' ? 'default' : SINGLE.indexOf(name) === -1 ? 'in the bundle' : 'single file'));
+      var h = el('div');
+      fig.appendChild(cap);
+      fig.appendChild(h);
+      grid.appendChild(fig);
+      return { host: h, theme: name };
+    });
+    mountAll(cells, function (c) { return { repo: REPO, theme: c.theme, open: 'gitglass.js' }; })
+      .then(function () { return Promise.all(cells.map(function (c) { return scrollToLine(c.host, 260); })); })
+      .then(done);
+  }
+
+  if (shot === 'snippet') {
+    var sh = el('div', 'fill');
+    stage.appendChild(sh);
+    GitGlass.mount(sh, { repo: REPO + '#gitglass.js:L184-L197', theme: 'github-dark' });
+    scrollToLine(sh, 184).then(done);   // snippet mode: no tree, no API call
+  }
+
+  if (shot === 'tour') {
+    var th = el('div', 'fill');
+    stage.appendChild(th);
+    var tv = GitGlass.mount(th, { repo: REPO, theme: 'nord', tour: TOUR });
+    // step 1 opens gitglass.js; once it is in, step 3 renders from the cache
+    settled(th).then(function () { return scrollToLine(th, 1); }).then(function () {
+      tv.tour.go(2);
+      setTimeout(done, 1500);   // without reduced motion the highlight sweeps in line by line
+    });
+  }
+
+  if (shot === 'narrow') {
+    var pair = el('div', 'pair');
+    stage.appendChild(pair);
+    var hosts = ['420 px wide: the file tree folds away', 'after ☰: the tree opens over the code'].map(function (text) {
+      var fig = el('figure', 'cell');
+      var cap = el('figcaption', 'cap gg', text);
+      cap.setAttribute('data-theme', 'github-light');
+      var h = el('div');
+      fig.appendChild(cap);
+      fig.appendChild(h);
+      pair.appendChild(fig);
+      return { host: h };
+    });
+    mountAll(hosts, function () { return { repo: REPO, theme: 'github-light', open: 'gitglass.js' }; }).then(function () {
+      hosts[1].host.querySelector('.gg-files').click();   // the right one with its file list open
+      setTimeout(done, 600);
+    });
+  }
+})();
+</script>
+</body>
+</html>

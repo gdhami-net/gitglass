@@ -4,95 +4,173 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>gitglass demo</title>
+<meta name="description" content="Try gitglass, a VS Code-style, read-only GitHub repo browser for any static page: 18 themes, snippet mode, guided tours, narrow layouts.">
+<link rel="icon" href="data:,">
+<!-- the core styles and the bundle of eleven presets; the seven single-file
+     themes are fetched by demo.js the first time one is picked -->
 <link rel="stylesheet" href="../dist/gitglass.min.css">
 <link rel="stylesheet" href="../dist/gitglass.themes.min.css">
-<style>
-  body { margin: 0; background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; padding: 40px; }
-  h1 { font-size: 22px; margin: 0 0 6px 0; } h2 { font-size: 17px; margin: 48px 0 8px 0; }
-  p { color: #94a3b8; max-width: 680px; line-height: 1.5; }
-  .wrap { max-width: 1000px; margin: 0 auto; }
-  label { font-size: 13px; color: #94a3b8; margin-right: 8px; }
-  select, input { font: inherit; padding: 4px 8px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
-  .row { display: flex; gap: 16px; align-items: center; margin: 18px 0; flex-wrap: wrap; }
-  .narrow { max-width: 420px; }
-  code { background: #1e293b; padding: 1px 6px; font-size: 13px; }
-</style>
+<link rel="stylesheet" href="demo.css">
 </head>
 <body>
-<div class="wrap">
-  <h1>gitglass</h1>
-  <p>One element with a <code>data-gitglass</code> attribute. Pick a theme — every color is a CSS variable, the presets just set them.</p>
-  <div class="row">
-    <label for="theme">theme</label>
-    <select id="theme">
-      <option value="vs-dark">vs-dark (default)</option><option value="vs-light">vs-light</option>
-      <option value="github-dark">github-dark</option><option value="github-light">github-light</option>
-      <option value="monokai">monokai</option><option value="dracula">dracula</option>
-      <option value="solarized-dark">solarized-dark</option><option value="solarized-light">solarized-light</option>
-      <option value="nord">nord</option><option value="slate-dark">slate-dark (the original)</option><option value="slate-light">slate-light</option>
-      <optgroup label="single files, loaded when picked">
-        <option value="midnight" data-file>midnight</option><option value="reef" data-file>reef</option>
-        <option value="dune" data-file>dune</option><option value="forest" data-file>forest</option>
-        <option value="ember" data-file>ember</option><option value="daylight" data-file>daylight</option>
-        <option value="quiet-light" data-file>quiet-light</option>
-      </optgroup>
-    </select>
-    <label for="repo">repo</label>
-    <input id="repo" value="gdhami-net/gitglass" style="width: 260px;">
-    <button id="go" style="font: inherit; padding: 5px 12px; cursor: pointer;">load</button>
+<a class="skip" href="#try">Skip to the demo</a>
+<p class="sr-only" id="live" aria-live="polite"></p>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="https://github.com/gdhami-net/gitglass">gitglass <span class="brand-ver">1.3.0</span></a>
+    <nav class="top-nav" aria-label="Project links">
+      <a href="https://github.com/gdhami-net/gitglass">GitHub</a>
+      <a href="https://github.com/gdhami-net/gitglass#readme">README</a>
+    </nav>
   </div>
-  <div id="host"></div>
+</header>
 
-  <h2>Snippet mode — one file, a line range, zero API calls</h2>
-  <p><code>data-gitglass="gdhami-net/gitglass#gitglass.js:L184-L205"</code> renders just that slice, live from the repo, with real line numbers and a link to the exact lines on GitHub. "whole file" expands in place.</p>
-  <div data-gitglass="gdhami-net/gitglass#gitglass.js:L184-L205" data-gitglass-theme="github-dark"></div>
-
-  <h2>Guided tour — walk a reader through a repo</h2>
-  <p>Drop a JSON script inside the host element: each step opens a file, highlights a line range, and explains it. Arrow keys work when the viewer has focus.</p>
-  <div data-gitglass="gdhami-net/gitglass" data-gitglass-theme="nord">
-    <script type="application/json">
-    {"steps": [
-      {"file": "gitglass.js", "lines": [29, 43], "title": "One attribute, three shapes",
-       "text": "parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target. That is the whole public surface."},
-      {"file": "gitglass.js", "lines": [64, 88], "title": "One API call per repo",
-       "text": "The recursive trees endpoint returns every path at once. It is cached in sessionStorage so a reader browsing ten files costs one request."},
-      {"file": "gitglass.js", "lines": [184, 205], "title": "Highlighting that fits in 10 KB",
-       "text": "Escape first, then a single regex pass per language for comments, strings, numbers, and keywords. Not a tokenizer — that is the trade for the size."},
-      {"file": "gitglass.js", "lines": [208, 219], "title": "Spans that survive line breaks",
-       "text": "Block comments cross lines, but each rendered line must be balanced HTML. splitLines closes and reopens the token span at every break."},
-      {"file": "gitglass.css", "lines": [108, 118], "title": "Lines, not one big pre",
-       "text": "Each line is its own element so a tour can highlight a range and scroll to it. Line numbers live in the same element, so they never drift."}
-    ]}
-    </script>
+<main>
+  <div class="wrap intro">
+    <h1>A VS Code-style GitHub repo browser for any static page</h1>
+    <p class="lede">One <code>data-gitglass</code> attribute gives you a file tree, tabs and highlighted code, fetched live from GitHub. Read-only, no backend, no build step.</p>
+    <!-- numbers from dist/SIZES.md -->
+    <ul class="stats" aria-label="Key numbers">
+      <li><b>9.9 KB</b> JS, min+gzip</li>
+      <li><b>2.4 KB</b> core CSS</li>
+      <li><b>0</b> dependencies</li>
+      <li><b>18</b> themes, all optional</li>
+    </ul>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://github.com/gdhami-net/gitglass">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+      <a class="btn" href="https://github.com/gdhami-net/gitglass#readme">Read the README</a>
+    </div>
   </div>
 
-  <h2>Narrow container</h2>
-  <p class="narrow">The same viewer in a 420px column — below 720px the file tree folds behind the ☰ button.</p>
-  <div class="narrow" data-gitglass="gdhami-net/gitglass" data-gitglass-theme="github-light"></div>
-</div>
+  <section class="section" id="try" aria-labelledby="try-h">
+    <div class="wrap">
+      <h2 id="try-h">Try it</h2>
+      <p class="section-lede">Load any public repo and pick a theme. Every viewer on this page follows your pick, and so does the code to paste.</p>
+
+      <noscript><p class="msg msg-error">This demo needs JavaScript: gitglass is a script.</p></noscript>
+      <div class="play">
+        <form class="play-bar" id="repo-form" novalidate>
+          <label class="repo-label" for="repo">GitHub repository</label>
+          <div class="repo-row">
+            <input class="repo-input" id="repo" name="repo" value="gdhami-net/gitglass" placeholder="owner/repo"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="repo-msg repo-meta">
+            <button class="btn btn-primary" type="submit">Load</button>
+          </div>
+          <div class="repo-meta" id="repo-meta">
+            <span class="repo-try">Try
+              <button class="linkish" type="button" data-repo="gdhami-net/gitglass">gdhami-net/gitglass</button>
+              or
+              <button class="linkish" type="button" data-repo="dotnet/runtime" data-lazy>dotnet/runtime</button>
+              (huge: folders list on demand)
+            </span>
+            <span class="api-left" id="api-left">GitHub API: 60 calls per hour without a token</span>
+          </div>
+          <p class="msg" id="repo-msg" role="status" aria-live="polite" hidden></p>
+        </form>
+
+        <fieldset class="tp" id="theme-picker">
+          <legend class="tp-legend">Theme</legend>
+          <!-- the two groups are filled in by demo.js from its theme list -->
+          <div class="tp-key" id="tp-key">
+            <p><span class="tp-tag">bundle</span> <span>in the 11-theme bundle (1.1 KB gzipped), already on this page</span></p>
+            <p><span class="tp-tag tp-tag-file">file</span> <span>its own 0.3 KB file, fetched the first time you pick it</span></p>
+          </div>
+        </fieldset>
+
+        <div class="stage">
+          <div class="viewer viewer-main" id="main-host"></div>
+        </div>
+      </div>
+
+      <div class="usage">
+        <div class="code-card">
+          <div class="code-head">
+            <p class="code-title" id="usage-title">Paste this into your page</p>
+            <button class="btn copy-btn" type="button" id="copy-usage" aria-describedby="usage-title">Copy</button>
+          </div>
+          <pre class="code" id="usage-code" tabindex="0" aria-labelledby="usage-title"></pre>
+        </div>
+        <p class="note" id="usage-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="snippet" aria-labelledby="snippet-h">
+    <div class="wrap">
+      <h2 id="snippet-h">Snippet mode: one file, a line range, zero API calls</h2>
+      <p class="section-lede">Add <code>#path:L184-L205</code> to the repo and gitglass shows just those lines, live from GitHub, with their real line numbers and a link to the exact range. “whole file” expands it in place. Snippets read the raw file only, so they never touch the API limit.</p>
+      <div class="viewer" id="snippet-host" data-gitglass="gdhami-net/gitglass#gitglass.js:L184-L205"></div>
+      <div class="code-card usage">
+        <pre class="code" id="snippet-code" tabindex="0" aria-label="Snippet markup"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tour" aria-labelledby="tour-h">
+    <div class="wrap">
+      <h2 id="tour-h">Guided tour: walk a reader through a repo</h2>
+      <p class="section-lede">Put a JSON script inside the host element. Each step opens a file, highlights a range of lines and explains it. <kbd>←</kbd> and <kbd>→</kbd> step through while the viewer has focus.</p>
+      <div class="tour-cover" id="tour-cover">
+        <h3>A five-step tour of gitglass’s own source</h3>
+        <ol class="tour-steps" id="tour-steps"></ol>
+        <button class="btn btn-primary" type="button" id="tour-start">Start the tour</button>
+      </div>
+      <div class="viewer viewer-tour" id="tour-host" data-repo="gdhami-net/gitglass" hidden>
+        <script type="application/json">
+        {"steps": [
+          {"file": "gitglass.js", "lines": [29, 43], "title": "One attribute, three shapes",
+           "text": "parseTarget turns owner/repo, owner/repo#path, or owner/repo#path:L10-L40 into a target. That is the whole public surface."},
+          {"file": "gitglass.js", "lines": [64, 88], "title": "One API call per repo",
+           "text": "The recursive trees endpoint returns every path at once. It is cached in sessionStorage so a reader browsing ten files costs one request."},
+          {"file": "gitglass.js", "lines": [184, 205], "title": "Highlighting that fits in 10 KB",
+           "text": "Escape first, then a single regex pass per language for comments, strings, numbers, and keywords. Not a tokenizer — that is the trade for the size."},
+          {"file": "gitglass.js", "lines": [208, 219], "title": "Spans that survive line breaks",
+           "text": "Block comments cross lines, but each rendered line must be balanced HTML. splitLines closes and reopens the token span at every break."},
+          {"file": "gitglass.css", "lines": [108, 118], "title": "Lines, not one big pre",
+           "text": "Each line is its own element so a tour can highlight a range and scroll to it. Line numbers live in the same element, so they never drift."}
+        ]}
+        </script>
+      </div>
+      <details>
+        <summary>Show the markup for this tour</summary>
+        <div class="code-card">
+          <pre class="code" id="tour-code" tabindex="0" aria-label="Tour markup"></pre>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="section" id="narrow" aria-labelledby="narrow-h">
+    <div class="wrap narrow-demo">
+      <div>
+        <h2 id="narrow-h">Narrow container</h2>
+        <p class="section-lede">The same viewer in a 420 px column. gitglass measures its own container, not the window, so it adapts inside sidebars, cards and phone layouts alike.</p>
+        <ul>
+          <li>Under 720 px of container width the file tree folds behind the <b>☰</b> button and opens over the code.</li>
+          <li>Picking a file closes it again. Tabs get narrower, and scroll arrows appear when they overflow.</li>
+          <li>The ⛶ button still takes the viewer full screen; <kbd>Esc</kbd> brings it back.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="ruler" aria-hidden="true">420 px</div>
+        <div class="viewer viewer-narrow" id="narrow-host"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>gitglass is MIT licensed. This page is <code>demo/index.html</code> in the repo: plain HTML, CSS and JS, like the library itself.</p>
+    <p>Without a token GitHub allows 60 API calls per hour per IP address. Each repo costs one call (two when its branch is <code>master</code>) and is then cached until you close the tab; the viewers on this page share that cache.</p>
+  </div>
+</footer>
+
 <script src="../dist/gitglass.min.js"></script>
-<script>
-  var view = null;
-  // the bundle is on the page; a single-file theme is fetched the first time it is picked
-  function needTheme(select) {
-    var opt = select.options[select.selectedIndex];
-    if (!opt.hasAttribute('data-file') || document.getElementById('theme-' + opt.value)) return;
-    var link = document.createElement('link');
-    link.rel = 'stylesheet'; link.id = 'theme-' + opt.value;
-    link.href = '../dist/themes/' + opt.value + '.min.css';
-    document.head.appendChild(link);
-  }
-  function load() {
-    needTheme(document.getElementById('theme'));
-    if (view) view.destroy();
-    view = GitGlass.mount(document.getElementById('host'), {
-      repo: document.getElementById('repo').value.trim(),
-      theme: document.getElementById('theme').value
-    });
-  }
-  document.getElementById('theme').addEventListener('change', load);
-  document.getElementById('go').addEventListener('click', load);
-  load();
-</script>
+<script src="demo.js"></script>
 </body>
 </html>
